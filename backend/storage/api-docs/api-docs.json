@@ -1,0 +1,1231 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Parish Information Management System API",
+        "description": "REST API for managing parish information, records, and services.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "Local Laravel development server"
+        }
+    ],
+    "paths": {
+        "/api/admin/audit-logs": {
+            "get": {
+                "tags": [
+                    "Admin: Audit logs"
+                ],
+                "summary": "Audit log entries, newest first, with search, activity, and date filters",
+                "operationId": "9a4fac05580ef0cecb48819349cebc6a",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Person, record, IP address, or activity",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "signins",
+                                "accounts",
+                                "requests",
+                                "documents",
+                                "certificates",
+                                "records",
+                                "system"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "description": "First day, in parish time",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "description": "Last day, in parish time",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of entries plus the activity categories"
+                    }
+                }
+            }
+        },
+        "/api/admin/audit-logs/export": {
+            "get": {
+                "tags": [
+                    "Admin: Audit logs"
+                ],
+                "summary": "Download every entry matching the filters as CSV or JSON",
+                "operationId": "74ac47973a8320625604c86e39fcbc67",
+                "parameters": [
+                    {
+                        "name": "format",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "csv",
+                                "json"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The file"
+                    },
+                    "422": {
+                        "description": "Too many entries; narrow the filters"
+                    }
+                }
+            }
+        },
+        "/api/admin/dashboard/health": {
+            "get": {
+                "tags": [
+                    "Admin: Dashboard"
+                ],
+                "summary": "CPU, memory, and API response time (p95 per 5 minutes over the last hour)",
+                "operationId": "fc81d78209e52504625ab8ebfce389f5",
+                "responses": {
+                    "200": {
+                        "description": "Readings; null values mean the reading is unavailable on this server"
+                    }
+                }
+            }
+        },
+        "/api/admin/dashboard/sessions": {
+            "get": {
+                "tags": [
+                    "Admin: Dashboard"
+                ],
+                "summary": "Signed-in sessions active within the session lifetime",
+                "operationId": "5afb0a5b68fc58a770f769ad30e5d93d",
+                "responses": {
+                    "200": {
+                        "description": "Active sessions, most recently active first"
+                    }
+                }
+            }
+        },
+        "/api/admin/dashboard/alerts": {
+            "get": {
+                "tags": [
+                    "Admin: Dashboard"
+                ],
+                "summary": "Open security alerts, those needing action first",
+                "operationId": "0a06b266bbebfd095514d4adbc976df9",
+                "responses": {
+                    "200": {
+                        "description": "Open alerts"
+                    }
+                }
+            }
+        },
+        "/api/admin/dashboard/alerts/{alert}/review": {
+            "post": {
+                "tags": [
+                    "Admin: Dashboard"
+                ],
+                "summary": "Mark an alert reviewed so it leaves the dashboard",
+                "operationId": "94987fd7aa07faad17e542cadaa58633",
+                "parameters": [
+                    {
+                        "name": "alert",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Reviewed"
+                    }
+                }
+            }
+        },
+        "/api/admin/users": {
+            "get": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "List accounts with search, role filter, and paging",
+                "operationId": "9ded17315e13756cd593b5840cd39a26",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Matches name, username, or email",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "admin",
+                                "priest",
+                                "staff",
+                                "parishioner"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of accounts, plus per-role counts for the current search and overall totals"
+                    },
+                    "403": {
+                        "description": "Not a System Administrator"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "Create an account and email a link to set its password",
+                "operationId": "f6f90d5fbbe24f66eb2b43901e0d3f38",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "username",
+                                    "email",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "Liza"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Mercado"
+                                    },
+                                    "username": {
+                                        "type": "string",
+                                        "example": "l.mercado"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "admin",
+                                            "priest",
+                                            "staff",
+                                            "parishioner"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created; invite_sent says whether the email went out"
+                    },
+                    "422": {
+                        "description": "Invalid input or username/email taken"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{user}": {
+            "patch": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "Edit an account; send only the fields that changed",
+                "operationId": "bf961e6c6456b62a64b1a4011895026d",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated account"
+                    },
+                    "422": {
+                        "description": "Invalid input, a taken username/email, or changing your own role"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{user}/password-reset": {
+            "post": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "Email the account a link to choose a new password",
+                "operationId": "30542ee4baabb97ce2fdb12cfc015d07",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email sent"
+                    },
+                    "503": {
+                        "description": "The mail server could not be reached"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{user}/deactivate": {
+            "post": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "Stop an account from signing in and end its sessions",
+                "operationId": "66a839df3580a0f80379eac10a293ab6",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deactivated"
+                    },
+                    "422": {
+                        "description": "You cannot deactivate your own account"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{user}/activate": {
+            "post": {
+                "tags": [
+                    "Admin: Users"
+                ],
+                "summary": "Let a deactivated account sign in again",
+                "operationId": "6815b5ec305e33cbf64ff2a5cb4658a8",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reactivated"
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Sign in with username or email",
+                "description": "Session-cookie login for the SPA. Call GET /sanctum/csrf-cookie first and send the X-XSRF-TOKEN header.",
+                "operationId": "dd51a484b7fa0f97c7680fdbde14cf5f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "login",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "login": {
+                                        "type": "string",
+                                        "example": "jdelacruz"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "remember": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Signed in; returns the user, role, and dashboard path"
+                    },
+                    "403": {
+                        "description": "Account is deactivated"
+                    },
+                    "422": {
+                        "description": "Invalid credentials or input"
+                    },
+                    "429": {
+                        "description": "Too many attempts"
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Sign out and end the session",
+                "operationId": "df9bdc6c7a6d9f20b983526b2ec0f698",
+                "responses": {
+                    "204": {
+                        "description": "Signed out"
+                    },
+                    "401": {
+                        "description": "Not signed in"
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "The signed-in user, role, and dashboard path",
+                "operationId": "b5de204f5e452ef51327c691aa99e77c",
+                "responses": {
+                    "200": {
+                        "description": "Current user"
+                    },
+                    "401": {
+                        "description": "Not signed in"
+                    },
+                    "403": {
+                        "description": "Account is deactivated"
+                    }
+                }
+            }
+        },
+        "/api/documents/{document}/link": {
+            "get": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "A short-lived link to view an uploaded document",
+                "description": "Staff and the priest can open any request document; a parishioner only those on their own requests.",
+                "operationId": "80b3ebaa1993dd323f58b64caecc0b17",
+                "responses": {
+                    "200": {
+                        "description": "url and expires_at"
+                    },
+                    "404": {
+                        "description": "Not found or not allowed"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/appointments": {
+            "get": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "The signed-in parishioner’s appointment requests, newest first",
+                "operationId": "a2d69c83ce3108704ea449b3c662d282",
+                "responses": {
+                    "200": {
+                        "description": "Appointments"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "Request an appointment at an open date and time",
+                "description": "The request starts as Pending. Name and email come from the account; the contact number is sent with the form.",
+                "operationId": "be6efbbdaa965e5850faf298b057b74d",
+                "responses": {
+                    "201": {
+                        "description": "Requested; returns the appointment"
+                    },
+                    "422": {
+                        "description": "Invalid input, or the time is no longer open"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/appointments/availability": {
+            "get": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "Bookable dates and times for a venue, with the times already taken",
+                "description": "Times are in the parish’s local time. chapel_id is required for a Chapel venue.",
+                "operationId": "efd9221948643c26ef54a1373588dd10",
+                "parameters": [
+                    {
+                        "name": "venue_type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Parish Church",
+                                "Chapel",
+                                "Home"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "chapel_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "first_date, last_date, times, and taken {date, time} pairs"
+                    },
+                    "422": {
+                        "description": "Unknown venue or chapel"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/profile": {
+            "get": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "The signed-in parishioner’s account and contact details",
+                "operationId": "221047ba7f877eaa1188eed86b7bab47",
+                "responses": {
+                    "200": {
+                        "description": "Profile; parishioner is null when the account has no parishioner record yet"
+                    },
+                    "403": {
+                        "description": "Not a parishioner account"
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "Update name, email, mobile number, address, and chapel",
+                "description": "Changing the email (which is also used to sign in) needs current_password.",
+                "operationId": "225df518d4a995deb546510b9263dfc1",
+                "responses": {
+                    "200": {
+                        "description": "Saved; returns the profile"
+                    },
+                    "422": {
+                        "description": "Invalid input, a taken email, or a wrong current password"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/record-requests": {
+            "get": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "The signed-in parishioner’s record requests, newest first",
+                "operationId": "a950407289b7bbb26e40d588b3852745",
+                "responses": {
+                    "200": {
+                        "description": "Requests"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "Submit a record request with its documents (multipart)",
+                "description": "Fields: record_type, request_type, relationship, contact_number, email, address, parish, purpose, purpose_other, details[name], documents[key] (files), privacy_consent.",
+                "operationId": "a9fbc0b5039632f3f1180c1cd012abe1",
+                "responses": {
+                    "201": {
+                        "description": "Submitted; returns the request with its number"
+                    },
+                    "422": {
+                        "description": "Missing details or documents"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/record-requests/{request}": {
+            "get": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "One of the parishioner’s requests",
+                "operationId": "f9427517364d8981f8274190c93195fe",
+                "responses": {
+                    "200": {
+                        "description": "Request"
+                    },
+                    "404": {
+                        "description": "Not found or not theirs"
+                    }
+                }
+            }
+        },
+        "/api/parishioner/record-requests/{request}/documents/{document}": {
+            "post": {
+                "tags": [
+                    "Parishioner"
+                ],
+                "summary": "Upload a document again, or one staff asked for (multipart field: file)",
+                "operationId": "ba2df8e6b03f20d8d771c11d40de1931",
+                "responses": {
+                    "200": {
+                        "description": "Uploaded; returns the request"
+                    },
+                    "409": {
+                        "description": "This document isn’t waiting for an upload"
+                    },
+                    "422": {
+                        "description": "Missing or unsupported file"
+                    }
+                }
+            }
+        },
+        "/api/auth/password": {
+            "put": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change your password; other devices are signed out",
+                "operationId": "908701aa5b372dd5d01bf0972bfe30bf",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Changed"
+                    },
+                    "422": {
+                        "description": "Wrong current password, or the new one is too weak or unchanged"
+                    }
+                }
+            }
+        },
+        "/api/auth/forgot-password": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Email a link to choose a new password",
+                "description": "Always answers the same way, whether or not the email has an account, so it cannot be used to find out who has one.",
+                "operationId": "2bc87cdee42a3e7a0332d86054875d5b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Request received"
+                    },
+                    "429": {
+                        "description": "Too many requests"
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Choose a new password with the token from the emailed link",
+                "operationId": "bcc9b35459c798c465fb34a002de76fa",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "token",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password changed; the user can now sign in"
+                    },
+                    "422": {
+                        "description": "Weak password, or the link is invalid or expired"
+                    },
+                    "429": {
+                        "description": "Too many attempts"
+                    }
+                }
+            }
+        },
+        "/api/priest/record-requests": {
+            "get": {
+                "tags": [
+                    "Priest"
+                ],
+                "summary": "Requests staff verified and sent for approval, oldest first",
+                "operationId": "5ea68a47122587a1a143fdc91875f969",
+                "responses": {
+                    "200": {
+                        "description": "Queue"
+                    }
+                }
+            }
+        },
+        "/api/priest/record-requests/{request}/approve": {
+            "post": {
+                "tags": [
+                    "Priest"
+                ],
+                "summary": "Approve and sign",
+                "operationId": "09430fba18692d8dff906f3e7bc2bc9b",
+                "responses": {
+                    "200": {
+                        "description": "Approved"
+                    },
+                    "409": {
+                        "description": "Not waiting for approval"
+                    }
+                }
+            }
+        },
+        "/api/priest/record-requests/{request}/reject": {
+            "post": {
+                "tags": [
+                    "Priest"
+                ],
+                "summary": "Reject with a reason the requester sees",
+                "operationId": "fdcdc1a73d33338f92129d547af29092",
+                "responses": {
+                    "200": {
+                        "description": "Rejected"
+                    },
+                    "422": {
+                        "description": "Reason missing"
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Parishioner sign-up; emails a link to set the password",
+                "operationId": "69af2c9359c5c936285d23148dd70a26",
+                "responses": {
+                    "201": {
+                        "description": "Account created; email_sent says whether the link went out"
+                    },
+                    "422": {
+                        "description": "Invalid input, or the username/email is taken"
+                    },
+                    "429": {
+                        "description": "Too many sign-ups from this address"
+                    }
+                }
+            }
+        },
+        "/api/sonas": {
+            "get": {
+                "tags": [
+                    "Parish"
+                ],
+                "summary": "Sonas with their active chapels",
+                "operationId": "11926c933837f4e87cb05516c58eadac",
+                "responses": {
+                    "200": {
+                        "description": "Sonas in name order, each with its chapels"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Pending requests, plus decided appointments from 6 months back to 12 months ahead",
+                "operationId": "5fd3ad9c6e66c83825af3855453c912e",
+                "responses": {
+                    "200": {
+                        "description": "Appointments"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments/assignees": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Active priests and staff who can lead an appointment",
+                "operationId": "9c12471c9a0a86c6afe051b4a8795293",
+                "responses": {
+                    "200": {
+                        "description": "user_id, name, and role for each"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments/{appointment}/approve": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Approve a pending request at its requested time and assign who leads it",
+                "operationId": "5fd051e6917793e3d709f74b5cb22b0a",
+                "responses": {
+                    "200": {
+                        "description": "Approved; returns the appointment"
+                    },
+                    "409": {
+                        "description": "The request is no longer pending"
+                    },
+                    "422": {
+                        "description": "No valid assignee"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments/{appointment}/reject": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Reject a pending request with a reason the requester sees",
+                "operationId": "62e7f6aa642c1e0ac9cf2b2aabdfc40b",
+                "responses": {
+                    "200": {
+                        "description": "Rejected; returns the appointment"
+                    },
+                    "409": {
+                        "description": "The request is no longer pending"
+                    },
+                    "422": {
+                        "description": "Missing or too short reason"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments/{appointment}/reschedule": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Move a pending or approved appointment to a new date and time; it is approved at the new time",
+                "description": "date is YYYY-MM-DD and time HH:MM, both in parish time.",
+                "operationId": "2b5930692a4138bffe0d5d02158fb14c",
+                "responses": {
+                    "200": {
+                        "description": "Rescheduled; returns the appointment"
+                    },
+                    "409": {
+                        "description": "The appointment was rejected or cancelled"
+                    },
+                    "422": {
+                        "description": "Invalid or past date, missing message, or no valid assignee"
+                    }
+                }
+            }
+        },
+        "/api/staff/appointments/{appointment}/assign": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Change the priest or staff member who leads an appointment",
+                "operationId": "77a422465156c8bec881e6c7b7263cf3",
+                "responses": {
+                    "200": {
+                        "description": "Saved; returns the appointment"
+                    },
+                    "409": {
+                        "description": "The appointment was rejected or cancelled"
+                    },
+                    "422": {
+                        "description": "No valid assignee"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "All record requests, newest first",
+                "operationId": "bed29b7ed5344888647ced35bb7c7446",
+                "responses": {
+                    "200": {
+                        "description": "Requests"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/start": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Start verification; the request is assigned to you",
+                "operationId": "5c41e0df0218fcc1781fb75a4443007b",
+                "responses": {
+                    "200": {
+                        "description": "Started"
+                    },
+                    "409": {
+                        "description": "Not pending"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/documents/{document}/review": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Mark a document Verified, Needs Resubmission, or Rejected (note required for the last two)",
+                "operationId": "a094776e9c0c43be419d743fb8efe985",
+                "responses": {
+                    "200": {
+                        "description": "Saved"
+                    },
+                    "409": {
+                        "description": "Not being checked, or nothing uploaded yet"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/remarks": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Add a remark the requester can read",
+                "operationId": "5d09aedccc626bec2693260c59215c54",
+                "responses": {
+                    "200": {
+                        "description": "Added"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/requirements": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Ask the requester for additional documents",
+                "description": "labels: one or more of Valid ID, Birth Certificate, Baptismal Certificate, Death Certificate, Burial Permit, Other.",
+                "operationId": "6337f8394f29d5d2396f6138c21ebd75",
+                "responses": {
+                    "200": {
+                        "description": "Requested"
+                    }
+                }
+            }
+        },
+        "/api/staff/registers/lookup": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Find a register entry by record type, book, page, and line",
+                "operationId": "7ff510a5df6e39d9af3a70900ead738c",
+                "responses": {
+                    "200": {
+                        "description": "The entry, or entry: null when nothing is there"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/register": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Record the register entry (book, page, line) for this request",
+                "description": "While checking, for certificate requests and corrections; after approval, for a New Registration once it is written in the register. Links the digital entry when one exists at that place.",
+                "operationId": "5e825b81326d4c1ee316f578519d6861",
+                "responses": {
+                    "200": {
+                        "description": "Saved"
+                    },
+                    "409": {
+                        "description": "Not at a step that takes a register entry"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/send": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Mark verified and send to the priest",
+                "description": "Needs every document uploaded and verified, and (except New Registration) the register entry recorded.",
+                "operationId": "8fcc9f0de736645908970e5a9fca892f",
+                "responses": {
+                    "200": {
+                        "description": "Sent"
+                    },
+                    "422": {
+                        "description": "Documents or register entry still missing"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/ready": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Mark an approved request ready for collection",
+                "operationId": "066303194eeb3021b4b64ae513e708ae",
+                "responses": {
+                    "200": {
+                        "description": "Ready"
+                    },
+                    "422": {
+                        "description": "A new registration has no register entry yet"
+                    }
+                }
+            }
+        },
+        "/api/staff/record-requests/{request}/complete": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Mark released: the requester collected the certificate",
+                "operationId": "7f89f3ef2371e28d5343a2a66f430d82",
+                "responses": {
+                    "200": {
+                        "description": "Completed"
+                    }
+                }
+            }
+        },
+        "/api/test": {
+            "get": {
+                "tags": [
+                    "Testing"
+                ],
+                "summary": "Test the Parish API",
+                "operationId": "af4eef7c415174b57a22c482494a6a28",
+                "responses": {
+                    "200": {
+                        "description": "API is working"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Admin: Audit logs",
+            "description": "Admin: Audit logs"
+        },
+        {
+            "name": "Admin: Dashboard",
+            "description": "Admin: Dashboard"
+        },
+        {
+            "name": "Admin: Users",
+            "description": "Admin: Users"
+        },
+        {
+            "name": "Authentication",
+            "description": "Authentication"
+        },
+        {
+            "name": "Documents",
+            "description": "Documents"
+        },
+        {
+            "name": "Parishioner",
+            "description": "Parishioner"
+        },
+        {
+            "name": "Priest",
+            "description": "Priest"
+        },
+        {
+            "name": "Parish",
+            "description": "Parish"
+        },
+        {
+            "name": "Staff",
+            "description": "Staff"
+        },
+        {
+            "name": "Testing",
+            "description": "Testing"
+        }
+    ]
+}

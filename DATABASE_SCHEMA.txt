@@ -1,0 +1,727 @@
+====================================================================================================
+PARISH INFORMATION MANAGEMENT SYSTEM - DATABASE TABLES AND RELATIONSHIPS
+====================================================================================================
+Database : PostgreSQL (parish_db)
+Generated: November 10, 2026 11:11 AM (Asia/Manila), from the live schema
+Tables   : 36 (27 application, 9 Laravel framework)
+
+Legend: PK = primary key, FK = foreign key, UQ = unique, NN = not null, "?" = nullable
+        ON DELETE tells what happens to the child row when the parent row is deleted.
+
+====================================================================================================
+PART 1. RELATIONSHIPS
+====================================================================================================
+
+Every foreign key, grouped by the parent (referenced) table.
+Cardinality: 1 parent -> many children, unless the FK column is also unique (then 1 -> 0..1).
+A nullable FK means the child row may exist without a parent (0..1 on the parent side).
+
+ANNOUNCEMENTS
+   1 -> many  notifications                via announcement_id                optional  ON DELETE CASCADE
+
+APPOINTMENTS_AND_EVENTS
+   1 -> many  notifications                via appointment_id                 optional  ON DELETE CASCADE
+
+CHAPEL_OFFICERS
+   1 -> many  community_event_officers     via officer_id                     required  ON DELETE CASCADE
+
+CHAPELS
+   1 -> many  appointments_and_events      via chapel_id                      optional  ON DELETE RESTRICT
+   1 -> many  chapel_officers              via chapel_id                      required  ON DELETE CASCADE
+   1 -> many  parishioners                 via chapel_id                      optional  ON DELETE SET NULL
+
+COMMUNITY_EVENTS
+   1 -> many  community_event_officers     via event_id                       required  ON DELETE CASCADE
+
+DOCUMENTS
+   1 -> many  record_embeddings            via document_id                    optional  ON DELETE CASCADE
+   1 -> many  request_documents            via document_id                    optional  ON DELETE RESTRICT
+
+PARISHIONERS
+   1 -> many  chapel_officers              via parishioner_id                 optional  ON DELETE SET NULL
+   1 -> many  documents                    via parishioner_id                 optional  ON DELETE RESTRICT
+   1 -> many  parishioners                 via father_parishioner_id          optional  ON DELETE SET NULL  (self-reference)
+   1 -> many  parishioners                 via mother_parishioner_id          optional  ON DELETE SET NULL  (self-reference)
+   1 -> many  record_embeddings            via parishioner_id                 optional  ON DELETE CASCADE
+   1 -> many  sacramental_records          via primary_parishioner_id         required  ON DELETE RESTRICT
+   1 -> many  sacramental_records          via secondary_parishioner_id       optional  ON DELETE RESTRICT
+
+RECORD_REQUESTS
+   1 -> many  notifications                via request_id                     optional  ON DELETE CASCADE
+   1 -> many  record_request_remarks       via request_id                     required  ON DELETE CASCADE
+   1 -> many  request_documents            via request_id                     required  ON DELETE CASCADE
+   1 -> many  sacramental_records          via source_request_id              optional  ON DELETE SET NULL
+
+ROLES
+   1 -> many  users                        via role_id                        required  ON DELETE RESTRICT
+
+SACRAMENT_TYPES
+   1 -> many  record_requests              via record_type_id                 required  ON DELETE RESTRICT
+   1 -> many  sacramental_records          via sacrament_type_id              required  ON DELETE RESTRICT
+
+SACRAMENTAL_RECORDS
+   1 -> many  documents                    via record_id                      optional  ON DELETE RESTRICT
+   1 -> many  record_embeddings            via record_id                      optional  ON DELETE CASCADE
+   1 -> many  record_requests              via record_id                      optional  ON DELETE RESTRICT
+   1 -> many  sacramental_record_corrections via record_id                      required  ON DELETE CASCADE
+   1 -> 0..1  sacramental_record_details   via record_id                      required  ON DELETE CASCADE
+   1 -> many  sacramental_sponsors         via record_id                      required  ON DELETE CASCADE
+
+SONAS
+   1 -> many  appointments_and_events      via sona_id                        optional  ON DELETE RESTRICT
+   1 -> many  chapels                      via sona_id                        required  ON DELETE RESTRICT
+
+USERS
+   1 -> many  ai_search_history            via user_id                        required  ON DELETE CASCADE
+   1 -> many  announcements                via created_by_user_id             required  ON DELETE RESTRICT
+   1 -> many  appointments_and_events      via assigned_staff_id              optional  ON DELETE RESTRICT
+   1 -> many  appointments_and_events      via requested_by_user_id           optional  ON DELETE RESTRICT
+   1 -> many  audit_logs                   via user_id                        optional  ON DELETE RESTRICT
+   1 -> many  chapel_officers              via created_by_user_id             optional  ON DELETE RESTRICT
+   1 -> many  chapel_officers              via reviewed_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  chapels                      via created_by_user_id             optional  ON DELETE RESTRICT
+   1 -> many  chapels                      via reviewed_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  community_events             via created_by_user_id             required  ON DELETE RESTRICT
+   1 -> many  community_events             via reviewed_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  documents                    via uploaded_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  notifications                via user_id                        required  ON DELETE CASCADE
+   1 -> many  offerings                    via recorded_by_user_id            optional  ON DELETE SET NULL
+   1 -> many  parish_settings              via updated_by_user_id             optional  ON DELETE SET NULL
+   1 -> 0..1  parishioners                 via user_id                        optional  ON DELETE SET NULL
+   1 -> many  record_request_remarks       via user_id                        required  ON DELETE RESTRICT
+   1 -> many  record_requests              via approved_by_priest_id          optional  ON DELETE RESTRICT
+   1 -> many  record_requests              via handled_by_staff_id            optional  ON DELETE RESTRICT
+   1 -> many  record_requests              via requested_by_user_id           optional  ON DELETE RESTRICT
+   1 -> many  record_requests              via verified_by_staff_id           optional  ON DELETE RESTRICT
+   1 -> many  request_documents            via verified_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  sacramental_record_corrections via requested_by_user_id           required  ON DELETE RESTRICT
+   1 -> many  sacramental_record_corrections via reviewed_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  sacramental_records          via created_by_user_id             required  ON DELETE RESTRICT
+   1 -> many  security_alerts              via reviewed_by_user_id            optional  ON DELETE RESTRICT
+   1 -> many  security_alerts              via user_id                        optional  ON DELETE RESTRICT
+
+----------------------------------------------------------------------------------------------------
+Many-to-many links (through a junction table)
+----------------------------------------------------------------------------------------------------
+   record_requests  <-> documents         through request_documents (request_id, document_id)
+   community_events <-> chapel_officers   through community_event_officers (event_id, officer_id)
+
+----------------------------------------------------------------------------------------------------
+Notes on the relationships
+----------------------------------------------------------------------------------------------------
+- users.role_id -> roles: every account has one role (System Administrator, Parish Priest, Parish
+  Staff, GKK Officer, PYA-KKK Officer, PPC Officer). GKK and PYA-KKK Officers share one portal
+  (events, Chapels & Officers); PPC Officers approve their events. The "Parishioner" row remains
+  only because a retired, deactivated account still points to it.
+- community_events are set up by GKK and PYA-KKK Officers (created_by_user_id) and approved or
+  rejected by a PPC Officer (reviewed_by_user_id, review_note). Editing an event sets it back to
+  Pending.
+- chapels and chapel_officers added by GKK and PYA-KKK Officers start with approval_status Pending
+  (created_by_user_id) until a PPC Officer approves or rejects them (reviewed_by_user_id,
+  review_note). Rows that existed before this rule are Approved. Officers can only be added to an
+  Approved chapel; only Approved chapels are offered for public booking, and only Approved
+  officers can be assigned to events.
+- community_event_officers links events to the chapel officers assigned to them (many-to-many).
+  Removing a chapel officer or deleting an event removes the link.
+- record_requests.requested_by_user_id and appointments_and_events.requested_by_user_id are now
+  always NULL for new rows: parishioners no longer have accounts. They send requests from the
+  public site and track them with record_requests.request_number (RR-XXXX-XXXX) or
+  appointments_and_events.reference_number (AP-XXXX-XXXX). Old rows may still point at a retired,
+  deactivated parishioner account.
+- documents.uploaded_by_user_id is NULL for files uploaded from the public site.
+- parishioners is the parish register of people (managed by staff). parishioners.user_id is a
+  leftover link to the old parishioner accounts.
+- parishioners.father_parishioner_id / mother_parishioner_id point back to parishioners (family
+  tree).
+- sacramental_records.primary_parishioner_id is the person who received the sacrament;
+  secondary_parishioner_id is the spouse on a marriage record.
+- sacramental_records.source_request_id links a register entry to the New Registration request
+  that created it.
+- sacramental_record_details shares its key with sacramental_records (one-to-one, extra fields per
+  sacrament type).
+- audit_logs.user_id is restricted on delete: an account with audit history is deactivated, never
+  deleted.
+
+====================================================================================================
+PART 2. TABLES AND COLUMNS
+====================================================================================================
+
+### Application tables
+
+----------------------------------------------------------------------------------------------------
+TABLE: ai_search_history
+----------------------------------------------------------------------------------------------------
+  search_id                    uuid             NN   [PK] default gen_random_uuid()
+  user_id                      uuid             NN   [FK -> users.user_id (on delete CASCADE)]
+  query                        varchar(300)     NN 
+  filters                      jsonb            NN 
+  result_count                 integer          NN 
+  searched_at                  timestamptz      NN  default CURRENT_TIMESTAMP
+
+----------------------------------------------------------------------------------------------------
+TABLE: announcements
+----------------------------------------------------------------------------------------------------
+  announcement_id              uuid             NN   [PK] default gen_random_uuid()
+  title                        varchar(200)     NN 
+  content_markdown             text             NN 
+  status                       varchar(50)      NN  default 'Draft'
+  published_at                 timestamptz      ?  
+  created_by_user_id           uuid             NN   [FK -> users.user_id (on delete RESTRICT)]
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  category                     varchar(30)      NN  default 'Parish'
+  is_pinned                    boolean          NN  default false
+  updated_at                   timestamptz      ?  
+  Constraints:
+    - CHECK (((category) = ANY ((ARRAY['Parish', 'Liturgy', 'Sacraments', 'Chapels']))))
+    - CHECK ((((status) <> 'Published') OR (published_at IS NOT NULL)))
+    - CHECK (((status) = ANY ((ARRAY['Draft', 'Published', 'Archived']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: api_request_metrics
+----------------------------------------------------------------------------------------------------
+  id                           bigint           NN   [PK] default nextval('api_request_metrics_id_seq')
+  recorded_at                  timestamptz      NN  default CURRENT_TIMESTAMP
+  duration_ms                  integer          NN 
+  status                       smallint         NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: appointments_and_events
+----------------------------------------------------------------------------------------------------
+  appointment_id               uuid             NN   [PK] default gen_random_uuid()
+  requested_by_user_id         uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  event_type                   varchar(100)     NN 
+  event_title                  varchar(150)     NN 
+  scheduled_start              timestamptz      NN 
+  scheduled_end                timestamptz      NN 
+  status                       varchar(50)      NN  default 'Pending'
+  assigned_staff_id            uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  venue_type                   varchar(30)      NN 
+  sona_id                      integer          ?    [FK -> sonas.sona_id (on delete RESTRICT)]
+  chapel_id                    integer          ?    [FK -> chapels.chapel_id (on delete RESTRICT)]
+  house_address                varchar(250)     ?  
+  requester_name               varchar(200)     NN 
+  requester_contact            varchar(20)      NN 
+  requester_email              varchar(150)     ?  
+  intention_category           varchar(50)      ?  
+  intention_details            text             ?  
+  attendee_count               integer          ?  
+  event_details                jsonb            ?  
+  privacy_consent              boolean          NN 
+  staff_remarks                text             ?  
+  reference_number             varchar(20)      NN   [UQ]
+  Constraints:
+    - CHECK (((attendee_count IS NULL) OR (attendee_count > 0)))
+    - CHECK ((((venue_type) <> 'Chapel') OR (chapel_id IS NOT NULL)))
+    - CHECK ((((venue_type) <> 'Home') OR (house_address IS NOT NULL)))
+    - CHECK (((intention_category IS NULL) OR ((intention_category) = ANY ((ARRAY['Thanksgiving',
+      'Souls', 'Healing', 'Special'])))))
+    - CHECK (privacy_consent)
+    - CHECK (((status) = ANY ((ARRAY['Pending', 'Approved', 'Rejected', 'Cancelled']))))
+    - CHECK ((scheduled_end > scheduled_start))
+    - CHECK (((venue_type) = ANY ((ARRAY['Parish Church', 'Chapel', 'Home']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: audit_logs
+----------------------------------------------------------------------------------------------------
+  log_id                       uuid             NN   [PK] default gen_random_uuid()
+  user_id                      uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  action                       varchar(100)     NN 
+  table_affected               varchar(100)     NN 
+  record_id_affected           varchar(100)     NN 
+  ip_address                   varchar(45)      NN 
+  details                      jsonb            ?  
+  timestamp                    timestamptz      NN  default CURRENT_TIMESTAMP
+
+----------------------------------------------------------------------------------------------------
+TABLE: chapel_officers
+----------------------------------------------------------------------------------------------------
+  officer_id                   uuid             NN   [PK] default gen_random_uuid()
+  chapel_id                    integer          NN   [FK -> chapels.chapel_id (on delete CASCADE)]
+  parishioner_id               uuid             ?    [FK -> parishioners.parishioner_id (on delete SET NULL)]
+  name                         varchar(150)     NN 
+  position                     varchar(100)     NN 
+  ministry                     varchar(100)     ?  
+  age                          integer          ?  
+  fb_account                   varchar(100)     ?  
+  contact_number               varchar(20)      ?  
+  term_year                    integer          NN 
+  approval_status              varchar(20)      NN  default 'Pending'
+  created_by_user_id           uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_at                  timestamptz      ?  
+  review_note                  text             ?  
+  Constraints:
+    - CHECK (((age IS NULL) OR (age >= 0)))
+    - CHECK (((approval_status) = ANY ((ARRAY['Pending', 'Approved', 'Rejected']))))
+    - CHECK ((((approval_status) <> 'Rejected') OR (review_note IS NOT NULL)))
+
+----------------------------------------------------------------------------------------------------
+TABLE: chapels
+----------------------------------------------------------------------------------------------------
+  chapel_id                    integer          NN   [PK] default nextval('chapels_chapel_id_seq')
+  sona_id                      integer          NN   [FK -> sonas.sona_id (on delete RESTRICT)]
+  name                         varchar(100)     NN 
+  patron                       varchar(100)     ?  
+  fiesta_date                  varchar(50)      ?  
+  contact_number               varchar(20)      ?  
+  fb_account_name              varchar(100)     ?  
+  is_active                    boolean          NN  default true
+  approval_status              varchar(20)      NN  default 'Pending'
+  created_by_user_id           uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_at                  timestamptz      ?  
+  review_note                  text             ?  
+  Constraints:
+    - CHECK (((approval_status) = ANY ((ARRAY['Pending', 'Approved', 'Rejected']))))
+    - CHECK ((((approval_status) <> 'Rejected') OR (review_note IS NOT NULL)))
+    - UNIQUE (sona_id, name)
+    - UNIQUE (sona_id, name)
+
+----------------------------------------------------------------------------------------------------
+TABLE: community_event_officers
+----------------------------------------------------------------------------------------------------
+  event_id                     uuid             NN   [PK, FK -> community_events.event_id (on delete CASCADE)]
+  officer_id                   uuid             NN   [PK, FK -> chapel_officers.officer_id (on delete CASCADE)]
+
+----------------------------------------------------------------------------------------------------
+TABLE: community_events
+----------------------------------------------------------------------------------------------------
+  event_id                     uuid             NN   [PK] default gen_random_uuid()
+  name                         varchar(150)     NN 
+  venue                        varchar(200)     NN 
+  event_date                   date             NN 
+  status                       varchar(20)      NN  default 'Pending'
+  created_by_user_id           uuid             NN   [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_at                  timestamptz      ?  
+  review_note                  text             ?  
+  created_at                   timestamptz      ?  
+  updated_at                   timestamptz      ?  
+  start_time                   time without time zone NN 
+  Constraints:
+    - CHECK ((((status) <> 'Rejected') OR (review_note IS NOT NULL)))
+    - CHECK ((((status) = 'Pending') OR ((reviewed_by_user_id IS NOT NULL) AND (reviewed_at IS NOT
+      NULL))))
+    - CHECK (((status) = ANY ((ARRAY['Pending', 'Approved', 'Rejected']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: documents
+----------------------------------------------------------------------------------------------------
+  document_id                  uuid             NN   [PK] default gen_random_uuid()
+  record_id                    uuid             ?    [FK -> sacramental_records.record_id (on delete RESTRICT)]
+  parishioner_id               uuid             ?    [FK -> parishioners.parishioner_id (on delete RESTRICT)]
+  file_name                    varchar(255)     NN 
+  file_path                    varchar(500)     NN   [UQ]
+  file_type                    varchar(50)      NN 
+  file_size                    integer          NN 
+  uploaded_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  uploaded_at                  timestamptz      NN  default CURRENT_TIMESTAMP
+  label                        varchar(100)     ?  
+  Constraints:
+    - CHECK ((file_size >= 0))
+
+----------------------------------------------------------------------------------------------------
+TABLE: notifications
+----------------------------------------------------------------------------------------------------
+  notification_id              uuid             NN   [PK] default gen_random_uuid()
+  user_id                      uuid             NN   [FK -> users.user_id (on delete CASCADE)]
+  request_id                   uuid             ?    [FK -> record_requests.request_id (on delete CASCADE)]
+  appointment_id               uuid             ?    [FK -> appointments_and_events.appointment_id (on delete CASCADE)]
+  message                      text             NN 
+  channel                      varchar(20)      NN  default 'in_app'
+  is_read                      boolean          NN  default false
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  kind                         varchar(30)      ?  
+  link                         varchar(300)     ?  
+  announcement_id              uuid             ?    [FK -> announcements.announcement_id (on delete CASCADE)]
+  Constraints:
+    - CHECK (((channel) = ANY ((ARRAY['in_app', 'email']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: offerings
+----------------------------------------------------------------------------------------------------
+  offering_id                  uuid             NN   [PK] default gen_random_uuid()
+  category                     varchar(80)      NN 
+  description                  varchar(255)     ?  
+  amount                       numeric          NN 
+  received_on                  date             NN 
+  recorded_by_user_id          uuid             ?    [FK -> users.user_id (on delete SET NULL)]
+  created_at                   timestamptz      ?  
+  updated_at                   timestamptz      ?  
+  Constraints:
+    - CHECK ((amount > (0)))
+
+----------------------------------------------------------------------------------------------------
+TABLE: parish_settings
+----------------------------------------------------------------------------------------------------
+  key                          varchar(60)      NN   [PK]
+  value                        text             NN 
+  updated_by_user_id           uuid             ?    [FK -> users.user_id (on delete SET NULL)]
+  updated_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+
+----------------------------------------------------------------------------------------------------
+TABLE: parishioners
+----------------------------------------------------------------------------------------------------
+  parishioner_id               uuid             NN   [PK] default gen_random_uuid()
+  user_id                      uuid             ?    [UQ, FK -> users.user_id (on delete SET NULL)]
+  first_name                   varchar(100)     NN 
+  middle_name                  varchar(100)     ?  
+  last_name                    varchar(100)     NN 
+  suffix                       varchar(20)      ?  
+  gender                       varchar(10)      ?  
+  date_of_birth                date             ?  
+  place_of_birth               varchar(150)     ?  
+  contact_number               varchar(20)      ?  
+  address_street               varchar(150)     ?  
+  address_barangay             varchar(100)     ?  
+  address_city                 varchar(100)     ?  
+  father_parishioner_id        uuid             ?    [FK -> parishioners.parishioner_id (on delete SET NULL)]
+  mother_parishioner_id        uuid             ?    [FK -> parishioners.parishioner_id (on delete SET NULL)]
+  is_archived                  boolean          NN  default false
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  updated_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  sex                          varchar(20)      ?  
+  email                        varchar(150)     ?  
+  chapel_id                    integer          ?    [FK -> chapels.chapel_id (on delete SET NULL)]
+  Constraints:
+    - CHECK (((father_parishioner_id IS NULL) OR (father_parishioner_id IS DISTINCT FROM
+      mother_parishioner_id)))
+    - CHECK (((father_parishioner_id IS NULL) OR (father_parishioner_id <> parishioner_id)))
+    - CHECK (((mother_parishioner_id IS NULL) OR (mother_parishioner_id <> parishioner_id)))
+
+----------------------------------------------------------------------------------------------------
+TABLE: record_embeddings
+----------------------------------------------------------------------------------------------------
+  embedding_id                 uuid             NN   [PK] default gen_random_uuid()
+  record_id                    uuid             ?    [FK -> sacramental_records.record_id (on delete CASCADE)]
+  parishioner_id               uuid             ?    [FK -> parishioners.parishioner_id (on delete CASCADE)]
+  document_id                  uuid             ?    [FK -> documents.document_id (on delete CASCADE)]
+  source_type                  varchar(50)      NN 
+  searchable_text_chunk        text             NN 
+  vector_embedding             vector           NN 
+  indexed_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  Constraints:
+    - CHECK ((num_nonnulls(record_id, parishioner_id, document_id) >= 1))
+    - CHECK (((source_type) = ANY ((ARRAY['Sacramental Record', 'Parishioner Profile', 'Scanned
+      Document']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: record_request_remarks
+----------------------------------------------------------------------------------------------------
+  remark_id                    uuid             NN   [PK] default gen_random_uuid()
+  request_id                   uuid             NN   [FK -> record_requests.request_id (on delete CASCADE)]
+  user_id                      uuid             NN   [FK -> users.user_id (on delete RESTRICT)]
+  kind                         varchar(20)      NN 
+  body                         text             NN 
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  Constraints:
+    - CHECK (((kind) = ANY ((ARRAY['remark', 'requirement']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: record_requests
+----------------------------------------------------------------------------------------------------
+  request_id                   uuid             NN   [PK] default gen_random_uuid()
+  request_number               varchar(30)      NN   [UQ]
+  requested_by_user_id         uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  record_type_id               integer          NN   [FK -> sacrament_types.sacrament_type_id (on delete RESTRICT)]
+  request_type                 varchar(30)      NN 
+  relationship_to_subject      varchar(50)      NN 
+  client_full_name             varchar(200)     NN 
+  client_contact_number        varchar(20)      NN 
+  client_email                 varchar(150)     NN 
+  client_address               varchar(300)     NN 
+  parish                       varchar(150)     NN 
+  purpose                      text             NN 
+  subject_details              jsonb            NN 
+  record_id                    uuid             ?    [FK -> sacramental_records.record_id (on delete RESTRICT)]
+  privacy_consent              boolean          NN 
+  status                       varchar(30)      NN  default 'Pending'
+  verified_by_staff_id         uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  approved_by_priest_id        uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  remarks                      text             ?  
+  requested_at                 timestamptz      NN  default CURRENT_TIMESTAMP
+  updated_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  handled_by_staff_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  register_book                varchar(50)      ?  
+  register_page                varchar(50)      ?  
+  register_line                varchar(50)      ?  
+  started_at                   timestamptz      ?  
+  sent_to_priest_at            timestamptz      ?  
+  decided_at                   timestamptz      ?  
+  ready_at                     timestamptz      ?  
+  completed_at                 timestamptz      ?  
+  details_returned_at          timestamptz      ?  
+  details_return_note          text             ?  
+  details_updated_at           timestamptz      ?  
+  Constraints:
+    - CHECK ((((status) <> ALL ((ARRAY['Approved', 'Ready for Collection', 'Completed']))) OR
+      ((verified_by_staff_id IS NOT NULL) AND (approved_by_priest_id IS NOT NULL))))
+    - CHECK (privacy_consent)
+    - CHECK ((((register_book IS NULL) AND (register_page IS NULL) AND (register_line IS NULL)) OR
+      ((register_book IS NOT NULL) AND (register_page IS NOT NULL) AND (register_line IS NOT
+      NULL))))
+    - CHECK ((((status) <> 'Rejected') OR ((approved_by_priest_id IS NOT NULL) AND (remarks IS NOT
+      NULL))))
+    - CHECK (((relationship_to_subject) = ANY ((ARRAY['Self', 'Parent', 'Spouse', 'Child',
+      'Relative', 'Authorized Representative']))))
+    - CHECK (((request_type) = ANY ((ARRAY['New Registration', 'Certificate Request', 'Record
+      Correction']))))
+    - CHECK (((status) = ANY ((ARRAY['Pending', 'Under Verification', 'Approved', 'Rejected',
+      'Ready for Collection', 'Completed']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: request_documents
+----------------------------------------------------------------------------------------------------
+  request_document_id          uuid             NN   [PK] default gen_random_uuid()
+  request_id                   uuid             NN   [FK -> record_requests.request_id (on delete CASCADE)]
+  document_id                  uuid             ?    [FK -> documents.document_id (on delete RESTRICT)]
+  document_label               varchar(100)     NN 
+  verification_status          varchar(30)      NN  default 'Pending'
+  verified_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  verified_at                  timestamptz      ?  
+  title                        varchar(150)     ?  
+  review_note                  text             ?  
+  Constraints:
+    - CHECK (((document_label) = ANY ((ARRAY['Valid ID', 'Birth Certificate', 'Baptismal
+      Certificate', 'Death Certificate', 'Burial Permit', 'Other']))))
+    - CHECK ((((verification_status) = 'Pending') OR ((verified_by_user_id IS NOT NULL) AND
+      (verified_at IS NOT NULL))))
+    - CHECK (((document_id IS NOT NULL) OR ((verification_status) = 'Pending')))
+    - CHECK (((verification_status) = ANY ((ARRAY['Pending', 'Verified', 'Rejected', 'Needs
+      Resubmission']))))
+    - UNIQUE (request_id, document_id)
+    - UNIQUE (request_id, document_id)
+
+----------------------------------------------------------------------------------------------------
+TABLE: roles
+----------------------------------------------------------------------------------------------------
+  role_id                      integer          NN   [PK] default nextval('roles_role_id_seq')
+  role_name                    varchar(50)      NN   [UQ]
+  description                  text             ?  
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+
+----------------------------------------------------------------------------------------------------
+TABLE: sacrament_types
+----------------------------------------------------------------------------------------------------
+  sacrament_type_id            integer          NN   [PK] default nextval('sacrament_types_sacrament_type_id_seq')
+  name                         varchar(50)      NN   [UQ]
+  description                  text             ?  
+
+----------------------------------------------------------------------------------------------------
+TABLE: sacramental_record_corrections
+----------------------------------------------------------------------------------------------------
+  correction_id                uuid             NN   [PK] default gen_random_uuid()
+  record_id                    uuid             NN   [FK -> sacramental_records.record_id (on delete CASCADE)]
+  proposed_values              jsonb            NN 
+  changes                      jsonb            NN 
+  status                       varchar(20)      NN  default 'Pending'
+  requested_by_user_id         uuid             NN   [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  reviewed_at                  timestamptz      ?  
+  review_note                  text             ?  
+  created_at                   timestamptz      ?  
+  updated_at                   timestamptz      ?  
+  Constraints:
+    - CHECK ((((status) <> 'Rejected') OR (review_note IS NOT NULL)))
+    - CHECK (((status) = ANY ((ARRAY['Pending', 'Approved', 'Rejected']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: sacramental_record_details
+----------------------------------------------------------------------------------------------------
+  record_id                    uuid             NN   [PK, FK -> sacramental_records.record_id (on delete CASCADE)]
+  baptism_date                 date             ?  
+  baptismal_parish             varchar(200)     ?  
+  spouse_baptismal_parish      varchar(200)     ?  
+  license_number               varchar(50)      ?  
+  civil_marriage_date          date             ?  
+  civil_marriage_place         varchar(200)     ?  
+  date_of_death                date             ?  
+  age_at_death                 integer          ?  
+  place_of_death               varchar(200)     ?  
+  cause_of_death               varchar(200)     ?  
+  civil_status                 varchar(30)      ?  
+  spouse_name                  varchar(200)     ?  
+  funeral_mass_date            date             ?  
+  burial_place                 varchar(200)     ?  
+  informant_name               varchar(200)     ?  
+  informant_relationship       varchar(50)      ?  
+  informant_contact            varchar(20)      ?  
+  informant_address            varchar(300)     ?  
+  father_name                  varchar(200)     ?  
+  mother_name                  varchar(200)     ?  
+  parents_names                varchar(300)     ?  
+  groom_parents                varchar(300)     ?  
+  bride_parents                varchar(300)     ?  
+  Constraints:
+    - CHECK (((age_at_death IS NULL) OR (age_at_death >= 0)))
+
+----------------------------------------------------------------------------------------------------
+TABLE: sacramental_records
+----------------------------------------------------------------------------------------------------
+  record_id                    uuid             NN   [PK] default gen_random_uuid()
+  sacrament_type_id            integer          NN   [FK -> sacrament_types.sacrament_type_id (on delete RESTRICT)]
+  primary_parishioner_id       uuid             NN   [FK -> parishioners.parishioner_id (on delete RESTRICT)]
+  secondary_parishioner_id     uuid             ?    [FK -> parishioners.parishioner_id (on delete RESTRICT)]
+  officiating_minister         varchar(150)     NN 
+  event_date                   date             NN 
+  book_number                  varchar(50)      NN 
+  page_number                  varchar(50)      NN 
+  line_number                  varchar(50)      NN 
+  remarks                      text             ?  
+  created_by_user_id           uuid             NN   [FK -> users.user_id (on delete RESTRICT)]
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  updated_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  event_place                  varchar(200)     NN 
+  source_request_id            uuid             ?    [FK -> record_requests.request_id (on delete SET NULL)]
+  is_corrected                 boolean          NN  default false
+  Constraints:
+    - CHECK (((secondary_parishioner_id IS NULL) OR (secondary_parishioner_id <>
+      primary_parishioner_id)))
+    - UNIQUE (sacrament_type_id, book_number, page_number, line_number)
+    - UNIQUE (sacrament_type_id, book_number, page_number, line_number)
+
+----------------------------------------------------------------------------------------------------
+TABLE: sacramental_sponsors
+----------------------------------------------------------------------------------------------------
+  sponsor_id                   uuid             NN   [PK] default gen_random_uuid()
+  record_id                    uuid             NN   [FK -> sacramental_records.record_id (on delete CASCADE)]
+  sponsor_name                 varchar(150)     NN 
+  sponsor_type                 varchar(50)      NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: security_alerts
+----------------------------------------------------------------------------------------------------
+  alert_id                     uuid             NN   [PK] default gen_random_uuid()
+  type                         varchar(50)      NN 
+  severity                     varchar(10)      NN 
+  title                        varchar(200)     NN 
+  detail                       text             NN 
+  ip_address                   varchar(45)      NN 
+  user_id                      uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  dedupe_key                   varchar(200)     NN 
+  occurrences                  integer          NN  default 1
+  first_seen_at                timestamptz      NN  default CURRENT_TIMESTAMP
+  last_seen_at                 timestamptz      NN  default CURRENT_TIMESTAMP
+  reviewed_at                  timestamptz      ?  
+  reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
+  Constraints:
+    - CHECK (((severity) = ANY ((ARRAY['high', 'review']))))
+
+----------------------------------------------------------------------------------------------------
+TABLE: sonas
+----------------------------------------------------------------------------------------------------
+  sona_id                      integer          NN   [PK] default nextval('sonas_sona_id_seq')
+  name                         varchar(100)     NN   [UQ]
+
+----------------------------------------------------------------------------------------------------
+TABLE: users
+----------------------------------------------------------------------------------------------------
+  user_id                      uuid             NN   [PK] default gen_random_uuid()
+  role_id                      integer          NN   [FK -> roles.role_id (on delete RESTRICT)]
+  email                        varchar(150)     NN 
+  username                     varchar(50)      NN 
+  password_hash                varchar(255)     NN 
+  is_active                    boolean          NN  default true
+  last_login                   timestamptz      ?  
+  remember_token               varchar(100)     ?  
+  created_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  updated_at                   timestamptz      NN  default CURRENT_TIMESTAMP
+  first_name                   varchar(100)     ?  
+  last_name                    varchar(100)     ?  
+  photo_path                   varchar(255)     ?  
+  preferences                  jsonb            ?  
+
+### Laravel framework tables (sessions, cache, queue, tokens, migrations)
+
+----------------------------------------------------------------------------------------------------
+TABLE: cache
+----------------------------------------------------------------------------------------------------
+  key                          varchar(255)     NN   [PK]
+  value                        text             NN 
+  expiration                   bigint           NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: cache_locks
+----------------------------------------------------------------------------------------------------
+  key                          varchar(255)     NN   [PK]
+  owner                        varchar(255)     NN 
+  expiration                   bigint           NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: failed_jobs
+----------------------------------------------------------------------------------------------------
+  id                           bigint           NN   [PK] default nextval('failed_jobs_id_seq')
+  uuid                         varchar(255)     NN   [UQ]
+  connection                   varchar(255)     NN 
+  queue                        varchar(255)     NN 
+  payload                      text             NN 
+  exception                    text             NN 
+  failed_at                    timestamp        NN  default CURRENT_TIMESTAMP
+
+----------------------------------------------------------------------------------------------------
+TABLE: job_batches
+----------------------------------------------------------------------------------------------------
+  id                           varchar(255)     NN   [PK]
+  name                         varchar(255)     NN 
+  total_jobs                   integer          NN 
+  pending_jobs                 integer          NN 
+  failed_jobs                  integer          NN 
+  failed_job_ids               text             NN 
+  options                      text             ?  
+  cancelled_at                 integer          ?  
+  created_at                   integer          NN 
+  finished_at                  integer          ?  
+
+----------------------------------------------------------------------------------------------------
+TABLE: jobs
+----------------------------------------------------------------------------------------------------
+  id                           bigint           NN   [PK] default nextval('jobs_id_seq')
+  queue                        varchar(255)     NN 
+  payload                      text             NN 
+  attempts                     smallint         NN 
+  reserved_at                  integer          ?  
+  available_at                 integer          NN 
+  created_at                   integer          NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: migrations
+----------------------------------------------------------------------------------------------------
+  id                           integer          NN   [PK] default nextval('migrations_id_seq')
+  migration                    varchar(255)     NN 
+  batch                        integer          NN 
+
+----------------------------------------------------------------------------------------------------
+TABLE: password_reset_tokens
+----------------------------------------------------------------------------------------------------
+  email                        varchar(255)     NN   [PK]
+  token                        varchar(255)     NN 
+  created_at                   timestamp        ?  
+
+----------------------------------------------------------------------------------------------------
+TABLE: personal_access_tokens
+----------------------------------------------------------------------------------------------------
+  id                           bigint           NN   [PK] default nextval('personal_access_tokens_id_seq')
+  tokenable_type               varchar(255)     NN 
+  tokenable_id                 uuid             NN 
+  name                         text             NN 
+  token                        varchar(64)      NN   [UQ]
+  abilities                    text             ?  
+  last_used_at                 timestamp        ?  
+  expires_at                   timestamp        ?  
+  created_at                   timestamp        ?  
+  updated_at                   timestamp        ?  
+
+----------------------------------------------------------------------------------------------------
+TABLE: sessions
+----------------------------------------------------------------------------------------------------
+  id                           varchar(255)     NN   [PK]
+  user_id                      uuid             ?  
+  ip_address                   varchar(45)      ?  
+  user_agent                   text             ?  
+  payload                      text             NN 
+  last_activity                integer          NN 
+
+====================================================================================================
+END
+====================================================================================================
