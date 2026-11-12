@@ -1,5 +1,5 @@
 
-name: Laravel Database Migration
+name: Laravel Database Migration & Seeding
 
 on:
   workflow_dispatch:
@@ -29,11 +29,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-      - name: Run Laravel migrations
+      - name: Run migrations and seeders
         env:
           APP_ENV: production
           APP_DEBUG: false
           APP_KEY: ${{ secrets.APP_KEY }}
           DB_CONNECTION: pgsql
           DB_URL: ${{ secrets.DB_URL }}
-        run: php artisan migrate --force
+        run: php artisan migrate --seed --force
