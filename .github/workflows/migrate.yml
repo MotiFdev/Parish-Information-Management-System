@@ -36,4 +36,5 @@ jobs:
           APP_KEY: ${{ secrets.APP_KEY }}
           DB_CONNECTION: pgsql
           DB_URL: ${{ secrets.DB_URL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: php artisan migrate --seed --force
