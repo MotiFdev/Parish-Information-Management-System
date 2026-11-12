@@ -1,4 +1,20 @@
+# Stage 1: build the React frontend into static files
+FROM node:22-slim AS frontend
 
+WORKDIR /app
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ .
+
+# Empty API URL = same origin: the app calls /api/... on the host that served it.
+# Set here because it overrides the localhost value in frontend/.env.
+ENV VITE_API_URL=
+RUN npm run build
+
+
+# Stage 2: Laravel serving the API and the built frontend
 FROM php:8.3-cli
 
 # Install system dependencies
@@ -28,6 +44,9 @@ COPY backend/ .
 
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Put the built frontend (index.html + assets/) into Laravel's public folder
+COPY --from=frontend /app/dist/ ./public/
 
 # Set permissions
 RUN chmod -R 775 storage bootstrap/cache
