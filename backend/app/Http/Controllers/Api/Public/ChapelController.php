@@ -40,7 +40,7 @@ class ChapelController extends Controller
             ->where('term_year', $term)
             ->where('approval_status', ApprovalStatus::Approved->value)
             ->orderBy('name')
-            ->get(['officer_id', 'chapel_id', 'name', 'position', 'ministry', 'contact_number']);
+            ->get(['officer_id', 'chapel_id', 'name', 'position', 'ministry', 'contact_number', 'photo_path']);
 
         return response()->json(['data' => [
             'term' => $term,
@@ -65,6 +65,7 @@ class ChapelController extends Controller
                 'position' => $o->position,
                 'ministry' => $o->ministry,
                 'contact_number' => $o->position === 'President' ? $o->contact_number : null,
+                'photo_url' => $o->photoUrl(),
             ]),
         ]]);
     }

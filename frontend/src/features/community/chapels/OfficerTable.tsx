@@ -1,4 +1,5 @@
 import { Icon } from '../../../components/ui/Icon'
+import { OfficerAvatar } from '../../parishioner/chapels/OfficerAvatar'
 import { ApprovalTag, RejectionNote } from '../ApprovalTag'
 import { sonaShortName, type Chapel, type Officer, type SonaOption } from './chapelsData'
 
@@ -45,12 +46,17 @@ export function OfficerTable({ sonas, rows, chapels, label, onEdit, onRemove }: 
           return (
             <tr key={o.id} className="max-lg:grid max-lg:grid-cols-2 max-lg:gap-x-4 max-lg:gap-y-2.5 max-lg:px-5 max-lg:py-4">
               <td className="lg:px-5 lg:py-3 max-lg:col-span-2">
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-stone-900">
-                  {o.name}
-                  <ApprovalTag status={o.status} />
-                </span>
-                <span className="block text-stone-600">{o.age !== null ? `${o.age} years old` : 'Age not given'}</span>
-                <RejectionNote status={o.status} note={o.reviewNote} />
+                <div className="flex items-start gap-3">
+                  <OfficerAvatar officer={o} size="sm" />
+                  <div className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-stone-900">
+                      {o.name}
+                      <ApprovalTag status={o.status} />
+                    </span>
+                    <span className="block text-stone-600">{o.age !== null ? `${o.age} years old` : 'Age not given'}</span>
+                    <RejectionNote status={o.status} note={o.reviewNote} />
+                  </div>
+                </div>
               </td>
               <td className="lg:px-3 lg:py-3">
                 <span className={cellLabel}>Position and ministry</span>

@@ -1,7 +1,10 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Dialog } from '../../../components/ui/Dialog'
 import { Field } from '../../../components/ui/Field'
+import { Icon } from '../../../components/ui/Icon'
 import { btnPrimary, btnSecondary, inputClass } from '../../../components/ui/styles'
+import { OfficerAvatar } from '../../parishioner/chapels/OfficerAvatar'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from './chapelsApi'
 import { ministries, positions, type Chapel, type Officer, type SonaOption } from './chapelsData'
 
 const TITLE = 'chd-title'
@@ -124,9 +127,104 @@ function ChapelForm({ sonas, chapel, onClose, onSave }: { sonas: SonaOption[]; c
   )
 }
 
+/* ---------- Officer picture ---------- */
+
+/**
+ * Picks the officer's profile picture. Nothing is uploaded here: the choice
+ * goes up with the form, after the officer is saved.
+ */
+function PhotoPicker({
+  name,
+  current,
+  file,
+  error,
+  onChange,
+  onError,
+}: {
+  name: string
+  /** The picture already on file. */
+  current?: string
+  /** undefined: keep current; File: replace it; null: remove it. */
+  file: File | null | undefined
+  error?: string
+  onChange: (file: File | null | undefined) => void
+  onError: (message: string) => void
+}) {
+  const input = useRef<HTMLInputElement>(null)
+  const preview = useRef<string>(undefined)
+  const [previewUrl, setPreviewUrl] = useState<string>()
+
+  // Frees the last preview when the dialog closes.
+  useEffect(
+    () => () => {
+      if (preview.current) URL.revokeObjectURL(preview.current)
+    },
+    [],
+  )
+
+  const choose = (next: File | null | undefined) => {
+    if (preview.current) URL.revokeObjectURL(preview.current)
+    preview.current = next ? URL.createObjectURL(next) : undefined
+    setPreviewUrl(preview.current)
+    onChange(next)
+  }
+
+  const shown = file === null ? undefined : file ? previewUrl : current
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <OfficerAvatar officer={{ name: name || '?', photo: shown }} size="xl" />
+      <div className="min-w-0">
+        <p className="font-semibold text-stone-900">Profile picture</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" onClick={() => input.current?.click()} className={btnSecondary}>
+            <Icon name="upload" className="size-4" />
+            {shown ? 'Change picture' : 'Choose picture'}
+          </button>
+          {shown && (
+            <button type="button" onClick={() => choose(file ? undefined : null)} className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-stone-700 hover:bg-stone-100">
+              {file ? 'Undo' : 'Remove'}
+            </button>
+          )}
+        </div>
+        <input
+          ref={input}
+          id="of-photo"
+          type="file"
+          accept={PHOTO_ACCEPT}
+          aria-label="Officer picture file"
+          aria-describedby={error ? 'of-photo-error' : 'of-photo-hint'}
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(e) => {
+            const picked = e.target.files?.[0]
+            e.target.value = ''
+            if (!picked) return
+            const problem = photoProblem(picked)
+            if (problem) return onError(problem)
+            choose(picked)
+          }}
+        />
+        {error ? (
+          <p id="of-photo-error" role="alert" className="mt-1.5 text-sm text-red-700">
+            {error}
+          </p>
+        ) : (
+          <p id="of-photo-hint" className="mt-1.5 text-sm text-stone-500">
+            {file === null ? 'The picture will be removed when you save.' : `JPG, PNG, or WebP, up to ${PHOTO_MAX_MB} MB. Shown on the public Chapels page.`}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ---------- Add or edit an officer ---------- */
 
-export type OfficerInput = Omit<Officer, 'id' | 'status' | 'reviewNote'>
+export type OfficerInput = Omit<Officer, 'id' | 'status' | 'reviewNote' | 'photo'> & {
+  /** A new picture to upload, null to remove the current one, or undefined to leave it as is. */
+  photoFile?: File | null
+}
 
 export function OfficerDialog({
   sonas,
@@ -177,6 +275,7 @@ function OfficerForm({
     contact: existing?.contact ?? '',
     fb: existing?.fb ?? '',
   })
+  const [photoFile, setPhotoFile] = useState<File | null>()
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
   const [busy, setBusy] = useState(false)
   const set = (patch: Partial<typeof f>) => {
@@ -213,7 +312,7 @@ function OfficerForm({
         const firstBad = ['chapelId', 'name', 'position', 'term', 'age'].find((k) => next[k])
         if (firstBad) return document.getElementById(`of-${firstBad}`)?.focus()
         setBusy(true)
-        const server = await onSave({ chapelId: f.chapelId, term: Number(f.term), name: f.name.trim(), position: f.position, ministry: f.ministry, age: f.age ? Number(f.age) : null, contact: f.contact.trim(), fb: f.fb.trim() })
+        const server = await onSave({ chapelId: f.chapelId, term: Number(f.term), name: f.name.trim(), position: f.position, ministry: f.ministry, age: f.age ? Number(f.age) : null, contact: f.contact.trim(), fb: f.fb.trim(), photoFile })
         setBusy(false)
         setErrors(server)
         const firstServer = ['chapelId', 'name', 'position', 'term', 'age'].find((k) => server[k])
@@ -241,6 +340,17 @@ function OfficerForm({
           <input {...errorProps('of-term', errors.term)} inputMode="numeric" maxLength={4} value={f.term} onChange={(e) => set({ term: e.target.value })} className={inputClass} />
         </Field>
       </div>
+      <PhotoPicker
+        name={f.name}
+        current={existing?.photo}
+        file={photoFile}
+        error={errors.photo}
+        onChange={(file) => {
+          setPhotoFile(file)
+          setErrors((e) => ({ ...e, photo: undefined }))
+        }}
+        onError={(photo) => setErrors((e) => ({ ...e, photo }))}
+      />
       <Field label="Full name" htmlFor="of-name" required error={errors.name}>
         <input {...errorProps('of-name', errors.name)} value={f.name} onChange={(e) => set({ name: e.target.value })} maxLength={150} autoComplete="off" className={inputClass} />
       </Field>

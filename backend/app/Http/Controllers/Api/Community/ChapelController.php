@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Community;
 
 use App\Enums\ApprovalStatus;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Controller;
 use App\Models\Chapel;
 use App\Models\ChapelOfficer;
@@ -11,6 +12,7 @@ use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
@@ -106,9 +108,38 @@ class ChapelController extends Controller
     {
         $summary = $this->officerSummary($officer);
         $officer->delete();
+        $this->deletePhotos([$officer->photo_path]);
         $this->audit->log('OFFICER_REMOVED', 'chapel_officers', $officer->officer_id, $request->user(), $summary);
 
         return response()->json(null, 204);
+    }
+
+    #[OA\Post(
+        path: '/api/community/officers/{officer}/photo',
+        summary: 'Upload or replace an officer’s profile picture (JPG, PNG, or WebP up to 2 MB)',
+        tags: ['Community'],
+        responses: [new OA\Response(response: 200, description: 'The updated officer'), new OA\Response(response: 422, description: 'Not an image, or too large')],
+    )]
+    public function storeOfficerPhoto(Request $request, ChapelOfficer $officer): JsonResponse
+    {
+        $old = $officer->photo_path;
+        $officer->forceFill(['photo_path' => ProfileController::storeUploadedPhoto($request)])->save();
+        $this->deletePhotos([$old]);
+        $this->audit->log('OFFICER_PHOTO_UPDATED', 'chapel_officers', $officer->officer_id, $request->user(), $this->officerSummary($officer));
+
+        return response()->json(['data' => $this->presentOfficer($officer)]);
+    }
+
+    #[OA\Delete(path: '/api/community/officers/{officer}/photo', summary: 'Remove an officer’s profile picture', tags: ['Community'], responses: [new OA\Response(response: 200, description: 'The updated officer')])]
+    public function destroyOfficerPhoto(Request $request, ChapelOfficer $officer): JsonResponse
+    {
+        if ($officer->photo_path) {
+            $this->deletePhotos([$officer->photo_path]);
+            $officer->forceFill(['photo_path' => null])->save();
+            $this->audit->log('OFFICER_PHOTO_REMOVED', 'chapel_officers', $officer->officer_id, $request->user(), $this->officerSummary($officer));
+        }
+
+        return response()->json(['data' => $this->presentOfficer($officer)]);
     }
 
     #[OA\Post(
@@ -134,7 +165,9 @@ class ChapelController extends Controller
         $replaced = DB::transaction(function () use ($chapel, $data, $request) {
             $replaced = 0;
             if ($data['replace'] ?? false) {
-                $replaced = $chapel->officers()->where('term_year', $data['term_year'])->delete();
+                $old = $chapel->officers()->where('term_year', $data['term_year']);
+                $this->deletePhotos($old->clone()->pluck('photo_path')->all());
+                $replaced = $old->delete();
             }
             foreach ($data['officers'] as $row) {
                 $chapel->officers()->create([...$this->blankToNull($row), 'term_year' => $data['term_year'], ...$this->submitted($request)]);
@@ -251,6 +284,19 @@ class ChapelController extends Controller
     }
 
     /**
+     * Removes officer pictures from the local disk, skipping officers without one.
+     *
+     * @param  list<string|null>  $paths
+     */
+    private function deletePhotos(array $paths): void
+    {
+        $paths = array_values(array_filter($paths));
+        if ($paths) {
+            Storage::disk('local')->delete($paths);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function officerSummary(ChapelOfficer $o): array
@@ -291,6 +337,7 @@ class ChapelController extends Controller
             'age' => $o->age,
             'fb_account' => $o->fb_account,
             'contact_number' => $o->contact_number,
+            'photo_url' => $o->photoUrl(),
             'term_year' => $o->term_year,
             'approval_status' => $o->approval_status->value,
             'review_note' => $o->review_note,

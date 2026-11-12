@@ -176,6 +176,8 @@ Route::prefix('community')->middleware(['auth:sanctum', 'active', 'role:gkk,pya-
         Route::post('/officers', 'storeOfficer');
         Route::patch('/officers/{officer}', 'updateOfficer')->whereUuid('officer');
         Route::delete('/officers/{officer}', 'destroyOfficer')->whereUuid('officer');
+        Route::post('/officers/{officer}/photo', 'storeOfficerPhoto')->whereUuid('officer')->middleware('throttle:30,1,officer-photo');
+        Route::delete('/officers/{officer}/photo', 'destroyOfficerPhoto')->whereUuid('officer');
     });
 
     Route::controller(CommunityEventController::class)->prefix('events')->group(function () {

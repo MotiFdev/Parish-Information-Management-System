@@ -29,6 +29,7 @@ export interface ReviewOfficer {
   age: number | null
   contact_number: string | null
   fb_account: string | null
+  photo_url: string | null
   term_year: number
   approval_status: ApprovalStatus
   created_by: string | null

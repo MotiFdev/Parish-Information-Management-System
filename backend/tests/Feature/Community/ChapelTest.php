@@ -8,6 +8,8 @@ use App\Models\Chapel;
 use App\Models\ChapelOfficer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -126,5 +128,61 @@ class ChapelTest extends TestCase
         $this->postJson($url, ['term_year' => 2026, 'officers' => [['name' => 'No Position']]])
             ->assertUnprocessable()->assertJsonValidationErrors(['officers.0.position']);
         $this->assertSame(2, ChapelOfficer::where('chapel_id', $this->chapel->chapel_id)->where('term_year', 2026)->count());
+    }
+
+    public function test_an_officer_picture_can_be_uploaded_replaced_and_removed(): void
+    {
+        Storage::fake('local');
+        $officer = ChapelOfficer::create(['chapel_id' => $this->chapel->chapel_id, 'term_year' => 2026, 'name' => 'Ana Reyes', 'position' => 'President']);
+        $url = "/api/community/officers/{$officer->officer_id}/photo";
+
+        $photoUrl = $this->actingAs($this->officer)->postJson($url, ['photo' => UploadedFile::fake()->image('ana.jpg', 200, 200)])
+            ->assertOk()->json('data.photo_url');
+        $first = $officer->fresh()->photo_path;
+        Storage::disk('local')->assertExists($first);
+        $listed = collect($this->getJson('/api/community/chapels')->json('officers'))->firstWhere('officer_id', $officer->officer_id);
+        $this->assertSame($photoUrl, $listed['photo_url']);
+
+        $this->postJson($url, ['photo' => UploadedFile::fake()->image('new.png', 300, 300)])->assertOk();
+        Storage::disk('local')->assertMissing($first);
+        $second = $officer->fresh()->photo_path;
+
+        $this->deleteJson($url)->assertOk()->assertJsonPath('data.photo_url', null);
+        Storage::disk('local')->assertMissing($second);
+        $this->assertTrue(AuditLog::where('action', 'OFFICER_PHOTO_UPDATED')->where('record_id_affected', $officer->officer_id)->exists());
+    }
+
+    public function test_officer_pictures_must_be_images(): void
+    {
+        Storage::fake('local');
+        $officer = ChapelOfficer::create(['chapel_id' => $this->chapel->chapel_id, 'term_year' => 2026, 'name' => 'Ana Reyes', 'position' => 'President']);
+
+        $this->actingAs($this->officer)
+            ->postJson("/api/community/officers/{$officer->officer_id}/photo", ['photo' => UploadedFile::fake()->create('list.pdf', 100, 'application/pdf')])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['photo' => 'Upload a JPG, PNG, or WebP picture.']);
+    }
+
+    public function test_removing_or_replacing_officers_deletes_their_pictures(): void
+    {
+        Storage::fake('local');
+        $withPhoto = function (string $name, string $path): ChapelOfficer {
+            Storage::disk('local')->put($path, 'image');
+            $officer = ChapelOfficer::create(['chapel_id' => $this->chapel->chapel_id, 'term_year' => 2026, 'name' => $name, 'position' => 'Member']);
+
+            $officer->forceFill(['photo_path' => $path])->save();
+
+            return $officer;
+        };
+        $removed = $withPhoto('Removed', 'profile-photos/a.jpg');
+        $withPhoto('Replaced', 'profile-photos/b.jpg');
+
+        $this->actingAs($this->officer)->deleteJson("/api/community/officers/{$removed->officer_id}")->assertNoContent();
+        Storage::disk('local')->assertMissing('profile-photos/a.jpg');
+
+        $this->postJson("/api/community/chapels/{$this->chapel->chapel_id}/officers/import", [
+            'term_year' => 2026, 'replace' => true, 'officers' => [['name' => 'Ana Reyes', 'position' => 'President']],
+        ])->assertOk();
+        Storage::disk('local')->assertMissing('profile-photos/b.jpg');
     }
 }

@@ -8,12 +8,13 @@ import { Pagination } from '../../components/ui/Pagination'
 import { btnPrimary, btnSecondary, cardClass, inputClass } from '../../components/ui/styles'
 import { ChapelDetail } from '../../features/community/chapels/ChapelDetail'
 import { ChapelDialog, OfficerDialog, type ChapelInput, type OfficerInput } from '../../features/community/chapels/ChapelDialogs'
-import { deleteChapel, formErrors, importOfficers, removeOfficer, saveChapel, saveOfficer, useChapelDirectory } from '../../features/community/chapels/chapelsApi'
+import { deleteChapel, formErrors, importOfficers, removeOfficer, removeOfficerPhoto, saveChapel, saveOfficer, uploadOfficerPhoto, useChapelDirectory } from '../../features/community/chapels/chapelsApi'
 import { byRank, CURRENT_TERM, ministries, positions, type Chapel, type Officer, type SonaOption } from '../../features/community/chapels/chapelsData'
 import { ChapelsTable } from '../../features/community/chapels/ChapelsTable'
 import { ImportOfficers, type ImportResult } from '../../features/community/chapels/ImportOfficers'
 import { OfficerTable } from '../../features/community/chapels/OfficerTable'
 import { CommunityLayout } from '../../layouts/CommunityLayout'
+import { ApiError } from '../../lib/api'
 import { navigate, useLocation } from '../../lib/router'
 
 const PATH = '/community/chapels'
@@ -75,8 +76,17 @@ export default function ChapelsPage() {
   const onSaveOfficer = async (input: OfficerInput) => {
     const editing = editingOfficer
     try {
-      const saved = await saveOfficer(input, editing && 'id' in editing ? editing.id : undefined)
-      setOfficers((os) => (os.some((o) => o.id === saved.id) ? os.map((o) => (o.id === saved.id ? saved : o)) : [...os, saved]))
+      let saved = await saveOfficer(input, editing && 'id' in editing ? editing.id : undefined)
+      // The picture goes up once the officer exists. If only it fails, the rest is still saved.
+      if (input.photoFile !== undefined) {
+        try {
+          saved = input.photoFile ? await uploadOfficerPhoto(saved.id, input.photoFile) : await removeOfficerPhoto(saved.id)
+        } catch (e) {
+          toast(`${saved.name} was saved, but the picture was not: ${e instanceof ApiError ? (e.field('photo') ?? e.message) : 'please try again'}.`)
+        }
+      }
+      const done = saved
+      setOfficers((os) => (os.some((o) => o.id === done.id) ? os.map((o) => (o.id === done.id ? done : o)) : [...os, done]))
       toast(
         editing && 'id' in editing
           ? editing.status === 'Rejected'

@@ -29,6 +29,7 @@ interface ApiOfficer {
   age: number | null
   fb_account: string | null
   contact_number: string | null
+  photo_url: string | null
   term_year: number
   approval_status: ApprovalStatus
   review_note: string | null
@@ -56,6 +57,7 @@ export const toOfficer = (o: ApiOfficer): Officer => ({
   age: o.age,
   fb: o.fb_account ?? '',
   contact: o.contact_number ?? '',
+  photo: o.photo_url ?? undefined,
   term: o.term_year,
   status: o.approval_status,
   reviewNote: o.review_note ?? '',
@@ -123,6 +125,29 @@ export async function deleteChapel(id: string) {
 
 export async function removeOfficer(id: string) {
   await api(`/api/community/officers/${id}`, { method: 'DELETE' })
+}
+
+/** What the server accepts for a picture (ProfileController::storeUploadedPhoto). */
+export const PHOTO_MAX_MB = 2
+export const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp'
+
+/** Why a picture would be refused, checked before uploading; undefined when it looks fine. */
+export function photoProblem(file: File) {
+  if (!/\.(jpe?g|png|webp)$/i.test(file.name)) return 'Choose a JPG, PNG, or WebP picture.'
+  if (file.size > PHOTO_MAX_MB * 1024 * 1024) return `The picture is too large. The limit is ${PHOTO_MAX_MB} MB.`
+}
+
+/** Uploads or replaces the officer's picture. */
+export async function uploadOfficerPhoto(id: string, file: File) {
+  const body = new FormData()
+  body.append('photo', file)
+  const r = await api<{ data: ApiOfficer }>(`/api/community/officers/${id}/photo`, { method: 'POST', body })
+  return toOfficer(r.data)
+}
+
+export async function removeOfficerPhoto(id: string) {
+  const r = await api<{ data: ApiOfficer }>(`/api/community/officers/${id}/photo`, { method: 'DELETE' })
+  return toOfficer(r.data)
 }
 
 /** Returns the chapel's officers for that term after the import. */

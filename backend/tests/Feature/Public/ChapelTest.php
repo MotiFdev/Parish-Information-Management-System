@@ -55,5 +55,17 @@ class ChapelTest extends TestCase
         $this->assertNull($officers['Gloria Ramos']['contact_number']);
         $this->assertArrayNotHasKey('age', $officers['Gloria Ramos']);
         $this->assertArrayNotHasKey('fb_account', $officers['Gloria Ramos']);
+        $this->assertNull($officers['Gloria Ramos']['photo_url']);
+    }
+
+    public function test_officer_pictures_are_public_links(): void
+    {
+        $chapel = Chapel::query()->where('name', 'Our Lady of Mount Carmel Chapel')->firstOrFail();
+        $officer = $this->officer($chapel, 'Edgar Morales', 'President');
+        $officer->forceFill(['photo_path' => 'profile-photos/'.str_repeat('a', 40).'.jpg'])->save();
+
+        $listed = collect($this->getJson('/api/public/chapels')->json('data.officers'))->firstWhere('name', 'Edgar Morales');
+
+        $this->assertSame(route('profile-photos.show', str_repeat('a', 40).'.jpg'), $listed['photo_url']);
     }
 }

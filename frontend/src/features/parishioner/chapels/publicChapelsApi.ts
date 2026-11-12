@@ -24,6 +24,7 @@ interface ApiResponse {
       ministry: string | null
       /** The president's only; null for everyone else. */
       contact_number: string | null
+      photo_url: string | null
     }>
   }
 }
@@ -60,6 +61,7 @@ function toDirectory({ data }: ApiResponse): PublicDirectory {
       age: null,
       fb: '',
       contact: o.contact_number ?? '',
+      photo: o.photo_url ?? undefined,
       term: data.term,
       status: 'Approved',
       reviewNote: '',

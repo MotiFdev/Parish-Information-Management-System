@@ -244,8 +244,9 @@ TABLE: chapel_officers
   ministry                     varchar(100)     ?  
   age                          integer          ?  
   fb_account                   varchar(100)     ?  
-  contact_number               varchar(20)      ?  
-  term_year                    integer          NN 
+  contact_number               varchar(20)      ?
+  photo_path                   varchar(255)     ?
+  term_year                    integer          NN
   approval_status              varchar(20)      NN  default 'Pending'
   created_by_user_id           uuid             ?    [FK -> users.user_id (on delete RESTRICT)]
   reviewed_by_user_id          uuid             ?    [FK -> users.user_id (on delete RESTRICT)]

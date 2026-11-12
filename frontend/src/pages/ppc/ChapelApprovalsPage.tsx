@@ -4,6 +4,7 @@ import { ErrorState, LoadingState } from '../../components/ui/DataState'
 import { Icon } from '../../components/ui/Icon'
 import { Pagination } from '../../components/ui/Pagination'
 import { btnPrimary, btnSecondary, cardClass, chipClass, inputClass } from '../../components/ui/styles'
+import { OfficerAvatar } from '../../features/parishioner/chapels/OfficerAvatar'
 import {
   approveChapel,
   approveOfficers,
@@ -305,6 +306,7 @@ export default function ChapelApprovalsPage() {
               <ul className="divide-y divide-stone-100">
                 {g.officers.map((o) => (
                   <li key={o.officer_id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center">
+                    <OfficerAvatar officer={{ name: o.name, photo: o.photo_url ?? undefined }} size="md" />
                     <div className="min-w-0 flex-1 text-sm">
                       <p>
                         <span className="font-semibold text-stone-900">{o.name}</span>

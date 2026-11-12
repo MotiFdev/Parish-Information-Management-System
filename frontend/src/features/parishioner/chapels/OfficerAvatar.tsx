@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import type { Officer } from '../../community/chapels/chapelsData'
-import { initials, officerPhoto } from './officerPhoto'
+import { initials } from './officerPhoto'
 
-const sizes = { sm: 'size-9 text-sm', md: 'size-12 text-lg', lg: 'size-20 text-2xl' }
+const sizes = { sm: 'size-9 text-sm', md: 'size-12 text-lg', lg: 'size-20 text-2xl', xl: 'size-24 text-3xl' }
 
-/** Officer portrait, falling back to initials while offline or if the image fails. */
-export function OfficerAvatar({ officer, size = 'md', tone = 'light' }: { officer: Officer; size?: keyof typeof sizes; tone?: 'light' | 'dark' }) {
-  const [failed, setFailed] = useState(false)
+/** The officer's uploaded picture, or their initials when there is none or it fails to load. */
+export function OfficerAvatar({ officer, size = 'md', tone = 'light' }: { officer: Pick<Officer, 'name' | 'photo'>; size?: keyof typeof sizes; tone?: 'light' | 'dark' }) {
+  const [failed, setFailed] = useState<string | null>(null)
   const ring = tone === 'dark' ? 'ring-2 ring-white/30' : 'ring-1 ring-stone-200'
+  const photo = officer.photo && failed !== officer.photo ? officer.photo : null
 
-  if (failed) {
+  if (!photo) {
     return (
       <span
         aria-hidden="true"
@@ -22,12 +23,11 @@ export function OfficerAvatar({ officer, size = 'md', tone = 'light' }: { office
 
   return (
     <img
-      src={officerPhoto(officer)}
+      src={photo}
       alt=""
       loading="lazy"
       decoding="async"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => setFailed(photo)}
       className={`shrink-0 rounded-full bg-stone-200 object-cover ${sizes[size]} ${ring}`}
     />
   )

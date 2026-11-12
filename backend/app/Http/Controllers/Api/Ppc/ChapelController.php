@@ -160,6 +160,7 @@ class ChapelController extends Controller
             'age' => $o->age,
             'contact_number' => $o->contact_number,
             'fb_account' => $o->fb_account,
+            'photo_url' => $o->photoUrl(),
             'term_year' => $o->term_year,
             'approval_status' => $o->approval_status->value,
             'created_by' => DisplayName::of($o->createdBy),

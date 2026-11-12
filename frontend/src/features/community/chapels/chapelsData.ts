@@ -36,7 +36,7 @@ export interface Officer {
   fb: string
   contact: string
   term: number
-  /** Profile photo URL. Not stored yet; the parishioner page shows a placeholder portrait until it is. */
+  /** Uploaded profile picture URL; initials are shown when there is none. */
   photo?: string
   /** New officers wait for PPC approval before they can be assigned to events. */
   status: ApprovalStatus

@@ -63,20 +63,9 @@ class ProfileController extends Controller
     )]
     public function storePhoto(Request $request): JsonResponse
     {
-        $request->validate([
-            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048', 'dimensions:min_width=64,min_height=64,max_width=6000,max_height=6000'],
-        ], [
-            'photo.required' => 'Choose a picture to upload.',
-            'photo.mimes' => 'Upload a JPG, PNG, or WebP picture.',
-            'photo.max' => 'The picture is too large. The limit is 2 MB.',
-            'photo.dimensions' => 'Use a picture at least 64 by 64 pixels.',
-        ]);
-
         /** @var User $user */
         $user = $request->user();
-        $file = $request->file('photo');
-        $ext = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension());
-        $path = $file->storeAs(self::PHOTO_DIRECTORY, Str::random(40).'.'.$ext, ['disk' => 'local']);
+        $path = self::storeUploadedPhoto($request);
 
         $old = $user->photo_path;
         $user->forceFill(['photo_path' => $path])->save();
@@ -107,6 +96,29 @@ class ProfileController extends Controller
         }
 
         return response()->json(['user' => new AuthUserResource($user->load('role'))]);
+    }
+
+    /**
+     * Validates the request's "photo" upload and stores it under a random name.
+     * Shared with chapel officer pictures, which the photo() route serves too.
+     *
+     * @return string The path on the local disk.
+     */
+    public static function storeUploadedPhoto(Request $request): string
+    {
+        $request->validate([
+            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048', 'dimensions:min_width=64,min_height=64,max_width=6000,max_height=6000'],
+        ], [
+            'photo.required' => 'Choose a picture to upload.',
+            'photo.mimes' => 'Upload a JPG, PNG, or WebP picture.',
+            'photo.max' => 'The picture is too large. The limit is 2 MB.',
+            'photo.dimensions' => 'Use a picture at least 64 by 64 pixels.',
+        ]);
+
+        $file = $request->file('photo');
+        $ext = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension());
+
+        return $file->storeAs(self::PHOTO_DIRECTORY, Str::random(40).'.'.$ext, ['disk' => 'local']);
     }
 
     /**

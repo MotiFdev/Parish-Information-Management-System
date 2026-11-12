@@ -57,6 +57,12 @@ class ChapelOfficer extends Model
         ];
     }
 
+    /** Where the officer's picture is served, or null when there isn't one. */
+    public function photoUrl(): ?string
+    {
+        return $this->photo_path ? route('profile-photos.show', basename($this->photo_path)) : null;
+    }
+
     /**
      * Only what the PPC has approved.
      *

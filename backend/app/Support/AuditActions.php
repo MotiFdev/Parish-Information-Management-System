@@ -99,6 +99,8 @@ final class AuditActions
         'OFFICER_ADDED' => ['label' => 'Chapel officer added (waiting for PPC)', 'category' => 'community'],
         'OFFICER_UPDATED' => ['label' => 'Chapel officer edited', 'category' => 'community'],
         'OFFICER_REMOVED' => ['label' => 'Chapel officer removed', 'category' => 'community'],
+        'OFFICER_PHOTO_UPDATED' => ['label' => 'Chapel officer picture changed', 'category' => 'community'],
+        'OFFICER_PHOTO_REMOVED' => ['label' => 'Chapel officer picture removed', 'category' => 'community'],
         'OFFICERS_IMPORTED' => ['label' => 'Officer list imported', 'category' => 'community'],
         'EVENT_CREATED' => ['label' => 'Event set up', 'category' => 'community'],
         'EVENT_UPDATED' => ['label' => 'Event edited (sent back for approval)', 'category' => 'community'],
