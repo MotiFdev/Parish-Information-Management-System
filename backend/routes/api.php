@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\Ppc\ChapelController as PpcChapelController;
 use App\Http\Controllers\Api\Ppc\EventController as PpcEventController;
 use App\Http\Controllers\Api\Priest\DashboardController as PriestDashboardController;
+use App\Http\Controllers\Api\Priest\EventController as PriestEventController;
 use App\Http\Controllers\Api\Priest\RecordCorrectionController as PriestRecordCorrectionController;
 use App\Http\Controllers\Api\Priest\RecordRequestController as PriestRecordRequestController;
 use App\Http\Controllers\Api\Priest\ReportController as PriestReportController;
@@ -186,8 +187,8 @@ Route::prefix('community')->middleware(['auth:sanctum', 'active', 'role:gkk,pya-
 });
 
 /*
-| PPC portal API: approving GKK and PYA-KKK events, and the chapels and
-| officers they add.
+| PPC portal API: pre-approving GKK and PYA-KKK events for the priest, and
+| approving the chapels and officers they add.
 */
 Route::prefix('ppc')->middleware(['auth:sanctum', 'active', 'role:ppc'])->group(function () {
     Route::controller(PpcChapelController::class)->group(function () {
@@ -200,19 +201,26 @@ Route::prefix('ppc')->middleware(['auth:sanctum', 'active', 'role:ppc'])->group(
 
     Route::controller(PpcEventController::class)->prefix('events')->group(function () {
         Route::get('/', 'index');
-        Route::post('/{event}/approve', 'approve')->whereUuid('event');
+        Route::post('/{event}/pre-approve', 'preApprove')->whereUuid('event');
         Route::post('/{event}/reject', 'reject')->whereUuid('event');
     });
 });
 
 /*
-| Parish priest portal API: certificate approvals and the registers, read-only.
+| Parish priest portal API: certificate approvals, final approval of
+| PPC-pre-approved events, and the registers, read-only.
 */
 Route::prefix('priest')->middleware(['auth:sanctum', 'active', 'role:priest'])->group(function () {
     Route::controller(PriestRecordRequestController::class)->prefix('record-requests')->group(function () {
         Route::get('/', 'index');
         Route::post('/{recordRequest}/approve', 'approve')->whereUuid('recordRequest');
         Route::post('/{recordRequest}/reject', 'reject')->whereUuid('recordRequest');
+    });
+
+    Route::controller(PriestEventController::class)->prefix('events')->group(function () {
+        Route::get('/', 'index');
+        Route::post('/{event}/approve', 'approve')->whereUuid('event');
+        Route::post('/{event}/reject', 'reject')->whereUuid('event');
     });
 
     Route::get('/sacramental-records', [PriestSacramentalRecordController::class, 'index']);

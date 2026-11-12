@@ -106,7 +106,7 @@ export default function AiSettingsPage() {
           {loadError ? (
             <ErrorState what="AI search settings" help={`${loadError} If it keeps happening, check the server and API logs.`} onRetry={() => setReloadKey((k) => k + 1)} />
           ) : (
-            <LoadingState what="AI search settings" />
+            <LoadingState what="AI search settings" variant="form" />
           )}
         </div>
       )}

@@ -302,7 +302,7 @@ export default function AuditLogsPage() {
         {loadError ? (
           <ErrorState what="the audit log" help={`${loadError} If it keeps happening, check the server and API logs.`} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : !data ? (
-          <LoadingState what="the audit log" />
+          <LoadingState what="the audit log" variant="table" />
         ) : total === 0 && !filtering ? (
           <div className="flex flex-col items-center gap-2 px-5 py-12 text-center">
             <Icon name="list" className="size-7 text-forest" />

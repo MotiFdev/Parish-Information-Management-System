@@ -6,6 +6,7 @@ use App\Enums\AnnouncementStatus;
 use App\Enums\UserRole;
 use App\Models\Announcement;
 use App\Models\Appointment;
+use App\Models\CommunityEvent;
 use App\Models\Notification;
 use App\Models\RecordRequest;
 use App\Models\SacramentalRecord;
@@ -67,6 +68,12 @@ class OfficeNotifier
     public function awaitingPriest(RecordRequest $r): void
     {
         $this->toPriests("Request {$r->request_number} is waiting for your approval.", '/priest/records/verify?'.http_build_query(['request' => $r->request_number]), ['request_id' => $r->request_id]);
+    }
+
+    /** The PPC pre-approved a GKK or PYA-KKK event; the priest gives the final approval. */
+    public function eventAwaitingPriest(CommunityEvent $e): void
+    {
+        $this->toPriests("{$e->name} on {$e->event_date->format('M j')} was pre-approved by the PPC and is waiting for your approval.", '/priest/events', []);
     }
 
     public function correctionAwaitingPriest(SacramentalRecord $record, string $type, string $subject): void

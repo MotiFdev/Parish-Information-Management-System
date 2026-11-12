@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Api\Public;
 
-use App\Enums\ApprovalStatus;
+use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CommunityEvent;
 use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
 
 /**
- * Upcoming GKK and PYA-KKK events for the public home page. Only events a PPC
- * Officer approved are shown; pending and rejected ones never leave the portals.
+ * Upcoming GKK and PYA-KKK events for the public home page. Only events the
+ * parish priest approved are shown; the rest never leave the portals.
  */
 class EventController extends Controller
 {
@@ -28,7 +28,7 @@ class EventController extends Controller
         $today = now((string) config('app.parish_timezone', 'Asia/Manila'))->toDateString();
 
         $events = CommunityEvent::query()
-            ->where('status', ApprovalStatus::Approved->value)
+            ->where('status', EventStatus::Approved->value)
             ->whereDate('event_date', '>=', $today)
             ->orderBy('event_date')
             ->orderBy('start_time')

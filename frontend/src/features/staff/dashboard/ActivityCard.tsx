@@ -34,7 +34,7 @@ export function ActivityCard({
         <p className="text-sm text-stone-600">Requests, documents, and register changes</p>
       </header>
       {preview === 'loading' ? (
-        <LoadingState what="recent activity" />
+        <LoadingState what="recent activity" variant="list" />
       ) : preview === 'error' ? (
         <ErrorState what="recent activity" help="If it keeps happening, tell the system administrator." onRetry={onRetry} />
       ) : items.length === 0 ? (

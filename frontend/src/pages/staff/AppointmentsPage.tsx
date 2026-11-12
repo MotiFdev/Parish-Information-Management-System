@@ -165,7 +165,7 @@ export default function AppointmentsPage() {
           )}
         </header>
         {state === 'loading' ? (
-          <LoadingState what="requests" />
+          <LoadingState what="requests" variant="list" />
         ) : state === 'error' ? (
           <ErrorState what="requests" help="If it keeps happening, tell the system administrator." />
         ) : (
@@ -188,7 +188,7 @@ export default function AppointmentsPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what="the calendar" />
+              <LoadingState what="the calendar" variant="calendar" />
             ) : (
               <ErrorState what="the calendar" help="If it keeps happening, tell the system administrator." />
             )}

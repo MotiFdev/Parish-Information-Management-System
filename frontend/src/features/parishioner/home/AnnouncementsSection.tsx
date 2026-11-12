@@ -11,7 +11,7 @@ export function AnnouncementsSection() {
   const { state, reload } = usePublicAnnouncements()
   const [filter, setFilter] = useState<(typeof filters)[number]>('All')
 
-  if (state === 'loading') return <LoadingState what="announcements" />
+  if (state === 'loading') return <LoadingState what="announcements" variant="events" />
   if (state === 'error') return <ErrorState what="announcements" onRetry={reload} />
 
   const source = state

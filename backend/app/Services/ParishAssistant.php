@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AnnouncementStatus;
-use App\Enums\ApprovalStatus;
+use App\Enums\EventStatus;
 use App\Models\Announcement;
 use App\Models\CommunityEvent;
 use App\Models\ParishSetting;
@@ -86,7 +86,7 @@ class ParishAssistant
             ->implode("\n") ?: '- None right now.';
 
         $events = CommunityEvent::query()
-            ->where('status', ApprovalStatus::Approved->value)
+            ->where('status', EventStatus::Approved->value)
             ->whereDate('event_date', '>=', $today->toDateString())
             ->orderBy('event_date')->orderBy('start_time')
             ->limit(15)->get(['name', 'venue', 'event_date', 'start_time'])

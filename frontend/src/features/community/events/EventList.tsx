@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../../../components/ui/Icon'
-import { StatusBadge } from '../../parishioner/home/StatusBadge'
+import { EventHistory, EventProgress, EventStatusBadge } from './EventTracking'
 import { formatEventWhen, type CommunityEvent } from './eventsApi'
 
-/** One event per row, shared by the GKK/PYA-KKK Events page and the PPC approvals page. */
-export function EventList({ events, actions }: { events: CommunityEvent[]; actions: (e: CommunityEvent) => ReactNode }) {
+/**
+ * One event per row, shared by the GKK/PYA-KKK Events page and the PPC and
+ * priest approval pages. showProgress adds the Submitted → PPC → priest steps.
+ */
+export function EventList({ events, actions, showProgress = false }: { events: CommunityEvent[]; actions: (e: CommunityEvent) => ReactNode; showProgress?: boolean }) {
   return (
     <ul className="divide-y divide-stone-100">
       {events.map((e) => {
@@ -21,7 +24,7 @@ export function EventList({ events, actions }: { events: CommunityEvent[]; actio
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h2 className="font-semibold text-stone-900">{e.name}</h2>
-                <StatusBadge status={e.status} />
+                <EventStatusBadge event={e} />
               </div>
               <p className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-stone-600">
                 <span className="inline-flex items-center gap-1.5">
@@ -33,23 +36,32 @@ export function EventList({ events, actions }: { events: CommunityEvent[]; actio
                   {e.venue}
                 </span>
               </p>
+              {e.purpose && (
+                <p className="mt-1.5 text-sm whitespace-pre-line text-stone-700">
+                  <span className="font-semibold">Purpose: </span>
+                  {e.purpose}
+                </p>
+              )}
               <p className="mt-1.5 text-sm text-stone-700">
                 <span className="font-semibold">Officers: </span>
                 {e.officers.length ? e.officers.map((o) => `${o.name} (${o.position}${o.chapel_name ? `, ${o.chapel_name}` : ''})`).join('; ') : 'None left on the list'}
               </p>
               <p className="mt-1 text-xs text-stone-500">
                 Set up by {e.created_by ?? 'an officer'}
+                {e.preapproved_by && ` · Pre-approved by ${e.preapproved_by}`}
                 {e.reviewed_by && ` · ${e.status === 'Approved' ? 'Approved' : 'Rejected'} by ${e.reviewed_by}`}
               </p>
+              {showProgress && <EventProgress event={e} />}
               {e.status === 'Rejected' && e.review_note && (
                 <p className="mt-2 flex gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-900">
                   <Icon name="message" className="mt-0.5 size-4 shrink-0" />
                   <span>
-                    <span className="font-semibold">PPC: </span>
+                    <span className="font-semibold">{e.rejected_by_role === 'priest' ? 'Parish priest: ' : 'PPC: '}</span>
                     {e.review_note}
                   </span>
                 </p>
               )}
+              <EventHistory event={e} />
             </div>
             <div className="flex shrink-0 flex-wrap gap-1 sm:justify-end">{actions(e)}</div>
           </li>

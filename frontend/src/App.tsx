@@ -25,6 +25,7 @@ import UsersPage from './pages/admin/UsersPage'
 import AiSearchPage from './pages/priest/AiSearchPage'
 import ApprovalsPage from './pages/priest/ApprovalsPage'
 import PriestComingSoon from './pages/priest/PriestComingSoon'
+import PriestEventApprovalsPage from './pages/priest/EventApprovalsPage'
 import ReportsPage from './pages/priest/ReportsPage'
 import SacramentalReviewPage from './pages/priest/SacramentalReviewPage'
 import StaffComingSoon from './pages/staff/StaffComingSoon'
@@ -186,6 +187,8 @@ function Routes() {
             <ApprovalsPage />
           ) : pathname === '/priest/records/sacramental' ? (
             <SacramentalReviewPage />
+          ) : pathname === '/priest/events' ? (
+            <PriestEventApprovalsPage />
           ) : pathname === '/priest/reports' ? (
             <ReportsPage />
           ) : pathname === '/priest/ai-search' ? (

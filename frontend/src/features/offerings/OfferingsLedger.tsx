@@ -77,7 +77,7 @@ export function OfferingsLedger({ from, to, period, onChanged, className = '' }:
       </header>
 
       {state === 'loading' ? (
-        <LoadingState what="the offerings ledger" />
+        <LoadingState what="the offerings ledger" variant="table" />
       ) : state === 'error' ? (
         <ErrorState what="the offerings ledger" help="If it keeps happening, tell the system administrator." onRetry={reload} />
       ) : rows.length === 0 ? (

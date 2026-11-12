@@ -36,6 +36,8 @@ class EventTest extends TestCase
             'start_time' => $time,
             'status' => $status,
             'created_by_user_id' => $this->gkk->user_id,
+            'preapproved_by_user_id' => $status === 'Approved' ? $this->ppc->user_id : null,
+            'preapproved_at' => $status === 'Approved' ? now() : null,
             'reviewed_by_user_id' => $status === 'Pending' ? null : $this->ppc->user_id,
             'reviewed_at' => $status === 'Pending' ? null : now(),
             'review_note' => $status === 'Rejected' ? 'Clashes with the fiesta.' : null,

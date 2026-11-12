@@ -50,7 +50,7 @@ export function SecurityAlertsPanel({ state, onReview, onRetry, className = '' }
       </header>
 
       {state.status === 'loading' ? (
-        <LoadingState what="security alerts" />
+        <LoadingState what="security alerts" variant="list" />
       ) : state.status === 'error' ? (
         <ErrorState what="security alerts" help="If it keeps happening, check the server and API logs." onRetry={onRetry} />
       ) : alerts.length === 0 ? (

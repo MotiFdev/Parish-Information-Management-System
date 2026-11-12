@@ -181,7 +181,7 @@ export default function BackupPage() {
 
       {runs === null ? (
         <div className={`${cardClass} mt-6`}>
-          {loadError ? <ErrorState what="backup status" help={`${loadError} ${errorHelp}`} onRetry={() => load()} /> : <LoadingState what="backup status" />}
+          {loadError ? <ErrorState what="backup status" help={`${loadError} ${errorHelp}`} onRetry={() => load()} /> : <LoadingState what="backup status" variant="detail" />}
         </div>
       ) : (
         <>

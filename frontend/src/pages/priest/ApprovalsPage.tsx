@@ -137,7 +137,7 @@ export default function ApprovalsPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what="requests awaiting approval" />
+              <LoadingState what="requests awaiting approval" variant="table" />
             ) : (
               <>
                 <ErrorState what="requests awaiting approval" help="If it keeps happening, the parish office can check the system." />

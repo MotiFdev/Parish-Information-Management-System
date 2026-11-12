@@ -76,7 +76,7 @@ function TrackResult({ input }: { input: string }) {
   if (state.status === 'loading') {
     return (
       <div className={`mt-8 ${cardClass}`}>
-        <LoadingState what="your request" />
+        <LoadingState what="your request" variant="detail" />
       </div>
     )
   }

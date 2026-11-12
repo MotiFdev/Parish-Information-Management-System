@@ -19,6 +19,7 @@ export const priestNav: PortalNavGroup[] = [
         href: '/priest/records/sacramental',
         icon: 'book',
       },
+      { label: 'Event Approvals', href: '/priest/events', icon: 'calendar' },
       { label: 'Reports & Analytics', href: '/priest/reports', icon: 'chart' },
       { label: 'AI Record Search', href: '/priest/ai-search', icon: 'search' },
     ],

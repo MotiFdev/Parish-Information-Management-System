@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
- * A PPC Officer's decision on GKK and PYA-KKK work: events, and new chapels
- * and chapel officers. Each has a status column, reviewed_by_user_id,
+ * A PPC Officer's decision on new GKK and PYA-KKK chapels and chapel officers.
+ * Events go through CommunityEvents instead, since the priest decides them. Each has a status column, reviewed_by_user_id,
  * reviewed_at, and review_note.
  */
 class Approvals

@@ -187,7 +187,7 @@ export default function UsersPage() {
             </button>
           </div>
         ) : !data ? (
-          <LoadingState what="accounts" />
+          <LoadingState what="accounts" variant="table" />
         ) : total === 0 ? (
           <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
             <Icon name="users" className="size-7 text-forest" />

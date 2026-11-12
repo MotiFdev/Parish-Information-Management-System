@@ -142,7 +142,7 @@ export default function SacramentalReviewPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what={`the ${type.toLowerCase()} register`} />
+              <LoadingState what={`the ${type.toLowerCase()} register`} variant="table" />
             ) : (
               <ErrorState what={`the ${type.toLowerCase()} register`} help="If it keeps happening, the parish office can check the system." onRetry={reload} />
             )}

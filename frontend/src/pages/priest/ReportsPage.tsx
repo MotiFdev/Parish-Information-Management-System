@@ -132,7 +132,7 @@ export default function ReportsPage() {
             )}
           </header>
           {state === 'loading' ? (
-            <LoadingState what="report data" />
+            <LoadingState what="report data" variant="chart" />
           ) : !valid ? (
             <p className="px-5 py-12 text-center text-stone-600">Fix the highlighted options to see the report.</p>
           ) : state === 'error' || (state === 'ready' && !report) ? (

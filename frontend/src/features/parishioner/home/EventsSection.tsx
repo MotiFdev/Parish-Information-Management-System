@@ -38,7 +38,7 @@ export function EventsSection() {
     setAttempt((n) => n + 1)
   }, [])
 
-  if (state === 'loading') return <LoadingState what="upcoming events" />
+  if (state === 'loading') return <LoadingState what="upcoming events" variant="events" />
   if (state === 'error') return <ErrorState what="upcoming events" onRetry={retry} />
   if (!state.length)
     return (

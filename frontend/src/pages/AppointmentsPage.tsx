@@ -425,7 +425,7 @@ export default function AppointmentsPage() {
                   </button>
                 </div>
               ) : (
-                <LoadingState what="open times" />
+                <LoadingState what="open times" variant="grid" />
               )}
               {errors.schedule && (
                 <p id="schedule" tabIndex={-1} className="mt-2 text-sm text-red-700">

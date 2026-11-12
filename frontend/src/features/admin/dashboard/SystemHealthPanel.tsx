@@ -126,7 +126,7 @@ export function SystemHealthPanel({ state, onCheck, onRetry, className = '' }: P
       </header>
 
       {state.status === 'loading' ? (
-        <LoadingState what="server readings" />
+        <LoadingState what="server readings" variant="detail" />
       ) : state.status === 'error' ? (
         <ErrorState what="the server readings" help={errorHelp} onRetry={onRetry} />
       ) : (

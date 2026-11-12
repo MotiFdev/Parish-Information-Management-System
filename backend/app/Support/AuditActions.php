@@ -103,8 +103,10 @@ final class AuditActions
         'EVENT_CREATED' => ['label' => 'Event set up', 'category' => 'community'],
         'EVENT_UPDATED' => ['label' => 'Event edited (sent back for approval)', 'category' => 'community'],
         'EVENT_DELETED' => ['label' => 'Event deleted', 'category' => 'community'],
-        'EVENT_APPROVED' => ['label' => 'Event approved by PPC', 'category' => 'community'],
+        'EVENT_PREAPPROVED' => ['label' => 'Event pre-approved by PPC (sent to priest)', 'category' => 'community'],
         'EVENT_REJECTED' => ['label' => 'Event rejected by PPC', 'category' => 'community', 'alert' => true],
+        'EVENT_APPROVED' => ['label' => 'Event approved by parish priest', 'category' => 'community'],
+        'EVENT_REJECTED_BY_PRIEST' => ['label' => 'Event rejected by parish priest', 'category' => 'community', 'alert' => true],
 
         'SECURITY_ALERT_REVIEWED' => ['label' => 'Security alert marked reviewed', 'category' => 'system'],
         'AI_SETTINGS_UPDATED' => ['label' => 'AI search settings changed', 'category' => 'system'],

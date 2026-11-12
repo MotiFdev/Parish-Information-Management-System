@@ -47,7 +47,7 @@ export function EventsCard({
       </header>
 
       {preview === 'loading' ? (
-        <LoadingState what="upcoming events" />
+        <LoadingState what="upcoming events" variant="events" />
       ) : preview === 'error' ? (
         <ErrorState what="upcoming events" help="If it keeps happening, tell the system administrator." onRetry={onRetry} />
       ) : days.length === 0 ? (

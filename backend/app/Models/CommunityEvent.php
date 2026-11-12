@@ -2,20 +2,22 @@
 
 namespace App\Models;
 
-use App\Enums\ApprovalStatus;
+use App\Enums\EventStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An event a GKK or PYA-KKK Officer set up: name, venue, date and start time, and the chapel
- * officers assigned to it. A PPC Officer approves or rejects it.
+ * officers assigned to it. A PPC Officer pre-approves or rejects it, then the
+ * parish priest gives the final approval or rejection.
  */
 #[Table(name: 'community_events', key: 'event_id')]
-#[Fillable(['name', 'venue', 'event_date', 'start_time', 'status', 'created_by_user_id', 'reviewed_by_user_id', 'reviewed_at', 'review_note'])]
+#[Fillable(['name', 'purpose', 'venue', 'event_date', 'start_time', 'status', 'created_by_user_id', 'preapproved_by_user_id', 'preapproved_at', 'reviewed_by_user_id', 'reviewed_at', 'review_note'])]
 class CommunityEvent extends Model
 {
     use HasUuids;
@@ -38,7 +40,8 @@ class CommunityEvent extends Model
     {
         return [
             'event_date' => 'date',
-            'status' => ApprovalStatus::class,
+            'status' => EventStatus::class,
+            'preapproved_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];
     }
@@ -64,7 +67,27 @@ class CommunityEvent extends Model
     }
 
     /**
-     * The PPC Officer who approved or rejected it.
+     * The PPC Officer who pre-approved it for the priest.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function preapprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'preapproved_by_user_id');
+    }
+
+    /**
+     * Each step it went through, oldest first.
+     *
+     * @return HasMany<CommunityEventHistory, $this>
+     */
+    public function history(): HasMany
+    {
+        return $this->hasMany(CommunityEventHistory::class, 'event_id')->orderBy('created_at');
+    }
+
+    /**
+     * Who made the final decision: the priest, or the PPC Officer who rejected it.
      *
      * @return BelongsTo<User, $this>
      */

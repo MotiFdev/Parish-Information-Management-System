@@ -148,7 +148,7 @@ export default function RecordRequestsPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what="record requests" />
+              <LoadingState what="record requests" variant="table" />
             ) : (
               <ErrorState what="record requests" help="If it keeps happening, tell the system administrator." />
             )}

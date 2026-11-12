@@ -149,7 +149,7 @@ export default function ChapelsPage() {
   return (
     <ParishionerLayout activeHref={PATH} hero={hero}>
       {state === 'loading' || state === 'error' ? (
-        <div className={cardClass}>{state === 'loading' ? <LoadingState what="the chapels" /> : <ErrorState what="the chapels" onRetry={retry} />}</div>
+        <div className={cardClass}>{state === 'loading' ? <LoadingState what="the chapels" variant="list" /> : <ErrorState what="the chapels" onRetry={retry} />}</div>
       ) : !chapel ? (
         <div className={`${cardClass} px-5 py-12 text-center`}>
           <p className="font-semibold text-stone-800">No chapels are listed yet</p>

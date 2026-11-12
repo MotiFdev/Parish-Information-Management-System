@@ -33,7 +33,7 @@ export function ApprovalQueueCard({ preview, requests, onRetry, className = '' }
       </header>
 
       {preview === 'loading' ? (
-        <LoadingState what="requests awaiting approval" />
+        <LoadingState what="requests awaiting approval" variant="list" rows={3} />
       ) : preview === 'error' ? (
         <ErrorState what="requests awaiting approval" help="If it keeps happening, the parish office can check the system." onRetry={onRetry} />
       ) : queue.length === 0 ? (

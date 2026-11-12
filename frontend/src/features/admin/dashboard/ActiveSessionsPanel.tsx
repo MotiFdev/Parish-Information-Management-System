@@ -25,7 +25,7 @@ export function ActiveSessionsPanel({ state, onRetry }: { state: Loaded<ActiveSe
       </header>
 
       {state.status === 'loading' ? (
-        <LoadingState what="active sessions" />
+        <LoadingState what="active sessions" variant="list" />
       ) : state.status === 'error' ? (
         <ErrorState what="active sessions" help="If it keeps happening, check the server and API logs." onRetry={onRetry} />
       ) : sessions.length === 0 ? (

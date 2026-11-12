@@ -213,7 +213,7 @@ export default function AnnouncementsPage() {
       <section aria-label="Announcements" className={`${cardClass} mt-2`}>
         {!ready ? (
           state === 'loading' ? (
-            <LoadingState what="announcements" />
+            <LoadingState what="announcements" variant="table" />
           ) : (
             <ErrorState what="announcements" help="If it keeps happening, tell the system administrator." onRetry={reload} />
           )

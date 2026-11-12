@@ -101,7 +101,7 @@ export function RequestsCard({ preview, requests, onRetry, className = '' }: Pro
 
       <div id="req-panel" role="tabpanel" aria-labelledby={`req-tab-${active}`} className="flex flex-1 flex-col">
         {preview === 'loading' ? (
-          <LoadingState what="record requests" />
+          <LoadingState what="record requests" variant="list" />
         ) : preview === 'error' ? (
           <ErrorState what="record requests" help="If it keeps happening, tell the system administrator." onRetry={onRetry} />
         ) : rows.length === 0 ? (

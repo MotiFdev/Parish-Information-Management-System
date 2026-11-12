@@ -68,7 +68,7 @@ export default function StaffSettingsPage() {
           {state === 'error' ? (
             <ErrorState what="your settings" help="If it keeps happening, tell the system administrator." onRetry={preview === 'error' ? undefined : reload} />
           ) : (
-            <LoadingState what="your settings" />
+            <LoadingState what="your settings" variant="form" />
           )}
         </div>
       ) : (

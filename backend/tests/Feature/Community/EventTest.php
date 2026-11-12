@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Chapel;
 use App\Models\ChapelOfficer;
 use App\Models\CommunityEvent;
+use App\Models\Notification;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,8 @@ class EventTest extends TestCase
 
     private User $ppc;
 
+    private User $priest;
+
     private ChapelOfficer $president;
 
     private ChapelOfficer $secretary;
@@ -35,6 +38,7 @@ class EventTest extends TestCase
         $this->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/community/events']);
         $this->gkk = User::factory()->role(UserRole::GkkOfficer)->create(['first_name' => 'Rosa', 'last_name' => 'Lim']);
         $this->ppc = User::factory()->role(UserRole::PpcOfficer)->create(['first_name' => 'Noel', 'last_name' => 'Santos']);
+        $this->priest = User::factory()->role(UserRole::ParishPriest)->create(['first_name' => 'Jose', 'last_name' => 'Dela Cruz']);
         $chapel = Chapel::where('is_active', true)->firstOrFail();
         $this->president = ChapelOfficer::create(['chapel_id' => $chapel->chapel_id, 'term_year' => 2026, 'name' => 'Ana Reyes', 'position' => 'President', 'approval_status' => 'Approved']);
         $this->secretary = ChapelOfficer::create(['chapel_id' => $chapel->chapel_id, 'term_year' => 2026, 'name' => 'Ben Cruz', 'position' => 'Secretary', 'approval_status' => 'Approved']);
@@ -48,6 +52,7 @@ class EventTest extends TestCase
     {
         return [
             'name' => 'Sona Bible Sharing',
+            'purpose' => 'Monthly Bible sharing for the families of the sona.',
             'venue' => 'San Isidro Labrador Chapel',
             'event_date' => $this->date,
             'start_time' => '14:30',
@@ -68,6 +73,7 @@ class EventTest extends TestCase
         $this->actingAs($this->gkk)->postJson('/api/community/events', $this->form())
             ->assertCreated()
             ->assertJsonPath('data.status', 'Pending')
+            ->assertJsonPath('data.purpose', 'Monthly Bible sharing for the families of the sona.')
             ->assertJsonPath('data.event_date', $this->date)
             ->assertJsonPath('data.start_time', '14:30')
             ->assertJsonPath('data.created_by', 'Rosa Lim')
@@ -89,7 +95,7 @@ class EventTest extends TestCase
     {
         $this->actingAs($this->gkk)->postJson('/api/community/events', [])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['name', 'venue', 'event_date', 'officer_ids', 'start_time' => 'Choose the time it starts.']);
+            ->assertJsonValidationErrors(['name', 'purpose' => 'Say what the event is for.', 'venue', 'event_date', 'officer_ids', 'start_time' => 'Choose the time it starts.']);
 
         $this->postJson('/api/community/events', $this->form(['start_time' => '2:30 PM']))
             ->assertUnprocessable()
@@ -113,18 +119,45 @@ class EventTest extends TestCase
             ->assertJsonValidationErrors(['officer_ids.0']);
     }
 
-    public function test_ppc_approves_a_pending_event_once(): void
+    private function preApprove(CommunityEvent $event): void
+    {
+        $this->actingAs($this->ppc)->postJson("/api/ppc/events/{$event->event_id}/pre-approve")->assertOk();
+    }
+
+    public function test_ppc_pre_approves_a_pending_event_once_and_the_priest_is_told(): void
     {
         $event = $this->create();
 
         $this->actingAs($this->ppc)->getJson('/api/ppc/events?status=Pending')->assertOk()->assertJsonCount(1, 'data');
-        $this->postJson("/api/ppc/events/{$event->event_id}/approve")
+        $this->postJson("/api/ppc/events/{$event->event_id}/pre-approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'Pre-Approved')
+            ->assertJsonPath('data.preapproved_by', 'Noel Santos')
+            ->assertJsonPath('data.reviewed_by', null);
+        $this->postJson("/api/ppc/events/{$event->event_id}/pre-approve")->assertConflict();
+
+        $this->assertTrue(AuditLog::where('action', 'EVENT_PREAPPROVED')->where('user_id', $this->ppc->user_id)->exists());
+        $this->assertTrue(Notification::where('user_id', $this->priest->user_id)->where('link', '/priest/events')->exists());
+        $this->getJson('/api/public/events')->assertJsonCount(0, 'data');
+    }
+
+    public function test_the_priest_gives_the_final_approval_only_after_the_ppc(): void
+    {
+        $event = $this->create();
+
+        $this->actingAs($this->priest)->postJson("/api/priest/events/{$event->event_id}/approve")->assertConflict();
+
+        $this->preApprove($event);
+        $this->actingAs($this->priest)->getJson('/api/priest/events?status=Pre-Approved')->assertOk()->assertJsonCount(1, 'data');
+        $this->postJson("/api/priest/events/{$event->event_id}/approve")
             ->assertOk()
             ->assertJsonPath('data.status', 'Approved')
-            ->assertJsonPath('data.reviewed_by', 'Noel Santos');
-        $this->postJson("/api/ppc/events/{$event->event_id}/approve")->assertConflict();
+            ->assertJsonPath('data.preapproved_by', 'Noel Santos')
+            ->assertJsonPath('data.reviewed_by', 'Fr. Jose Dela Cruz');
+        $this->postJson("/api/priest/events/{$event->event_id}/approve")->assertConflict();
 
-        $this->assertTrue(AuditLog::where('action', 'EVENT_APPROVED')->where('user_id', $this->ppc->user_id)->exists());
+        $this->assertTrue(AuditLog::where('action', 'EVENT_APPROVED')->where('user_id', $this->priest->user_id)->exists());
+        $this->getJson('/api/public/events')->assertJsonPath('data.0.event_id', $event->event_id);
     }
 
     public function test_ppc_must_give_a_reason_to_reject_and_organizers_see_it(): void
@@ -138,19 +171,61 @@ class EventTest extends TestCase
 
         $this->actingAs($this->gkk)->getJson('/api/community/events')
             ->assertJsonPath('data.0.status', 'Rejected')
+            ->assertJsonPath('data.0.rejected_by_role', 'ppc')
             ->assertJsonPath('data.0.review_note', 'The chapel is booked for the fiesta that day.');
+    }
+
+    public function test_the_priest_can_reject_a_pre_approved_event_with_a_reason(): void
+    {
+        $event = $this->create();
+        $this->preApprove($event);
+
+        $this->actingAs($this->priest)->postJson("/api/priest/events/{$event->event_id}/reject", ['reason' => ''])
+            ->assertUnprocessable()->assertJsonValidationErrors(['reason']);
+        $this->postJson("/api/priest/events/{$event->event_id}/reject", ['reason' => 'The parish hall is closed for repairs.'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'Rejected')
+            ->assertJsonPath('data.rejected_by_role', 'priest')
+            ->assertJsonPath('data.reviewed_by', 'Fr. Jose Dela Cruz');
+
+        $this->assertTrue(AuditLog::where('action', 'EVENT_REJECTED_BY_PRIEST')->exists());
+    }
+
+    public function test_organizers_see_every_step_in_the_approval_history(): void
+    {
+        $event = $this->create();
+        $this->actingAs($this->ppc)->postJson("/api/ppc/events/{$event->event_id}/reject", ['reason' => 'Pick another venue, please.'])->assertOk();
+        $this->actingAs($this->gkk)->patchJson("/api/community/events/{$event->event_id}", $this->form(['venue' => 'Parish Hall', 'purpose' => 'Bible sharing, moved indoors.']))->assertOk();
+        $this->preApprove($event);
+        $this->actingAs($this->priest)->postJson("/api/priest/events/{$event->event_id}/approve")->assertOk();
+
+        $this->actingAs($this->gkk)->getJson('/api/community/events')
+            ->assertJsonPath('data.0.status', 'Approved')
+            ->assertJsonCount(5, 'data.0.history')
+            ->assertJsonPath('data.0.history.0.action', 'Submitted')
+            ->assertJsonPath('data.0.history.0.by', 'Rosa Lim')
+            ->assertJsonPath('data.0.history.1.action', 'Rejected')
+            ->assertJsonPath('data.0.history.1.by_role', 'PPC Officer')
+            ->assertJsonPath('data.0.history.1.note', 'Pick another venue, please.')
+            ->assertJsonPath('data.0.history.2.action', 'Resubmitted')
+            ->assertJsonPath('data.0.history.2.changes', ['purpose', 'venue'])
+            ->assertJsonPath('data.0.history.3.action', 'Pre-Approved')
+            ->assertJsonPath('data.0.history.4.action', 'Approved')
+            ->assertJsonPath('data.0.history.4.by_role', 'Parish Priest');
     }
 
     public function test_editing_a_decided_event_sends_it_back_to_the_ppc(): void
     {
         $event = $this->create();
-        $this->actingAs($this->ppc)->postJson("/api/ppc/events/{$event->event_id}/approve")->assertOk();
+        $this->preApprove($event);
+        $this->actingAs($this->priest)->postJson("/api/priest/events/{$event->event_id}/approve")->assertOk();
 
         $this->actingAs($this->gkk)->patchJson("/api/community/events/{$event->event_id}", $this->form(['venue' => 'Parish Hall', 'start_time' => '09:00', 'officer_ids' => [$this->secretary->officer_id]]))
             ->assertOk()
             ->assertJsonPath('data.status', 'Pending')
             ->assertJsonPath('data.venue', 'Parish Hall')
             ->assertJsonPath('data.start_time', '09:00')
+            ->assertJsonPath('data.preapproved_by', null)
             ->assertJsonPath('data.reviewed_by', null)
             ->assertJsonCount(1, 'data.officers');
     }
@@ -172,7 +247,8 @@ class EventTest extends TestCase
         $event = $this->create();
 
         $this->actingAs($this->ppc)->postJson('/api/community/events', $this->form())->assertForbidden();
-        $this->actingAs($this->gkk)->postJson("/api/ppc/events/{$event->event_id}/approve")->assertForbidden();
+        $this->actingAs($this->gkk)->postJson("/api/ppc/events/{$event->event_id}/pre-approve")->assertForbidden();
+        $this->actingAs($this->ppc)->postJson("/api/priest/events/{$event->event_id}/approve")->assertForbidden();
         $this->actingAs(User::factory()->role(UserRole::ParishStaff)->create())->getJson('/api/ppc/events')->assertForbidden();
         $this->assertSame('Pending', $event->fresh()->status->value);
     }

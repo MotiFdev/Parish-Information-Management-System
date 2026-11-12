@@ -98,7 +98,7 @@ export function SacramentTrends({ state: preview, months: keys, trend, onRetry }
       </header>
 
       {preview === 'loading' ? (
-        <LoadingState what="sacrament trends" />
+        <LoadingState what="sacrament trends" variant="chart" />
       ) : preview === 'error' ? (
         <ErrorState what="sacrament trends" help="If it keeps happening, the parish office can check the system." onRetry={onRetry} />
       ) : empty ? (

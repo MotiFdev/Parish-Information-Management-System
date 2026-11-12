@@ -5,20 +5,22 @@ import { ErrorState, LoadingState } from '../../components/ui/DataState'
 import { Icon } from '../../components/ui/Icon'
 import { btnPrimary, cardClass, chipClass } from '../../components/ui/styles'
 import { formErrors, useChapelDirectory } from '../../features/community/chapels/chapelsApi'
-import { EventDialog } from '../../features/community/events/EventDialog'
+import { EventDrawer } from '../../features/community/events/EventDrawer'
 import { EventList } from '../../features/community/events/EventList'
 import { deleteEvent, formatEventWhen, parishToday, saveEvent, useEvents, type CommunityEvent, type EventInput } from '../../features/community/events/eventsApi'
 import { CommunityLayout } from '../../layouts/CommunityLayout'
 
 const filters = {
   Upcoming: (e: CommunityEvent, today: string) => e.event_date >= today,
+  'In review': (e: CommunityEvent) => e.status === 'Pending' || e.status === 'Pre-Approved',
+  Approved: (e: CommunityEvent) => e.status === 'Approved',
   'Needs changes': (e: CommunityEvent) => e.status === 'Rejected',
   Past: (e: CommunityEvent, today: string) => e.event_date < today,
   All: () => true,
 } satisfies Record<string, (e: CommunityEvent, today: string) => boolean>
 type Filter = keyof typeof filters
 
-const fieldFor: Record<string, string> = { name: 'name', venue: 'venue', event_date: 'date', start_time: 'time', officer_ids: 'officers' }
+const fieldFor: Record<string, string> = { name: 'name', purpose: 'purpose', venue: 'venue', event_date: 'date', start_time: 'time', officer_ids: 'officers' }
 
 export default function EventsPage() {
   const { toast } = useToast()
@@ -41,7 +43,7 @@ export default function EventsPage() {
     try {
       const saved = await saveEvent(input, id)
       events.keep(saved.event_id, saved)
-      toast(id ? `Saved ${saved.name}. It is waiting for PPC approval again.` : `${saved.name} sent to the PPC for approval.`)
+      toast(id ? `Saved ${saved.name}. It goes back to the PPC for pre-approval.` : `${saved.name} sent to the PPC for pre-approval.`)
       setEditing(null)
       return {}
     } catch (e) {
@@ -59,7 +61,7 @@ export default function EventsPage() {
         <div>
           <h1 className="font-serif text-4xl font-semibold text-stone-900">Events</h1>
           <p className="mt-1 max-w-2xl text-stone-600">
-            Set up GKK and PYA-KKK events with their venue, date, and assigned chapel officers. Each one goes to the PPC for approval.
+            Set up GKK and PYA-KKK events with their venue, date, and assigned chapel officers. The PPC pre-approves each one, then the parish priest gives the final approval. Only approved events show on the parish home page.
           </p>
         </div>
         <button type="button" onClick={() => setEditing('new')} disabled={!loaded} className={`${btnPrimary} shrink-0`}>
@@ -78,11 +80,12 @@ export default function EventsPage() {
 
       <section aria-label="Events" className={`${cardClass} mt-4`}>
         {events.state === 'loading' ? (
-          <LoadingState what="events" />
+          <LoadingState what="events" variant="events" />
         ) : events.state === 'error' ? (
           <ErrorState what="events" help="If it keeps happening, tell the system administrator." onRetry={events.reload} />
         ) : shown.length ? (
           <EventList
+            showProgress
             events={shown}
             actions={(e) => (
               <>
@@ -112,7 +115,7 @@ export default function EventsPage() {
         </p>
       )}
 
-      <EventDialog event={editing} chapels={loaded?.chapels ?? []} officers={loaded?.officers ?? []} onClose={() => setEditing(null)} onSave={onSave} />
+      <EventDrawer event={editing} chapels={loaded?.chapels ?? []} officers={loaded?.officers ?? []} onClose={() => setEditing(null)} onSave={onSave} />
 
       <ConfirmDialog
         open={deleting !== null}
@@ -138,8 +141,8 @@ export default function EventsPage() {
       >
         {deleting && (
           <p>
-            {deleting.name} on {formatEventWhen(deleting)} is removed for everyone, including the PPC
-            {deleting.status === 'Approved' ? ', even though they approved it' : ''}. This can’t be undone.
+            {deleting.name} on {formatEventWhen(deleting)} is removed for everyone, including the PPC and the parish priest
+            {deleting.status === 'Approved' ? ', and taken off the parish home page' : ''}. This can’t be undone.
           </p>
         )}
       </ConfirmDialog>

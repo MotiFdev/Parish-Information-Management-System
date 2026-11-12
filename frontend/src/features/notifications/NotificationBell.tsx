@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { LoadingState } from '../../components/ui/DataState'
 import { Icon, type IconName } from '../../components/ui/Icon'
 import { navigate } from '../../lib/router'
 import { relativeTime } from '../admin/dashboard/time'
@@ -96,10 +97,12 @@ export function NotificationBell({ settingsHref }: { settingsHref?: string }) {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {!inbox ? (
-              <p role="status" className="px-4 py-8 text-center text-sm text-stone-600">
-                {failed ? 'Couldn’t load notifications. Check your connection.' : 'Loading…'}
+            {!inbox && failed ? (
+              <p role="alert" className="px-4 py-8 text-center text-sm text-stone-600">
+                Couldn’t load notifications. Check your connection.
               </p>
+            ) : !inbox ? (
+              <LoadingState what="notifications" variant="list" rows={4} />
             ) : inbox.data.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-stone-600">Nothing new. Office updates for you will show up here.</p>
             ) : (

@@ -22,8 +22,8 @@ export function RequireRole({ roles, children }: { roles: RoleSlug[]; children: 
 
   if (status === 'loading' || status === 'signed-out')
     return (
-      <div className="grid min-h-dvh place-items-center bg-ivory">
-        <LoadingState what="your account" />
+      <div className="min-h-dvh bg-ivory">
+        <LoadingState what="your account" variant="page" />
       </div>
     )
 

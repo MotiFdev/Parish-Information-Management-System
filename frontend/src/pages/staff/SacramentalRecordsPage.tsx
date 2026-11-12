@@ -182,7 +182,7 @@ export default function SacramentalRecordsPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what={`the ${type.toLowerCase()} register`} />
+              <LoadingState what={`the ${type.toLowerCase()} register`} variant="table" />
             ) : (
               <ErrorState what={`the ${type.toLowerCase()} register`} help="If it keeps happening, tell the system administrator." onRetry={reload} />
             )}
@@ -254,7 +254,7 @@ export default function SacramentalRecordsPage() {
               Add {type.toLowerCase()} entry
             </h2>
             {draft === 'loading' ? (
-              <LoadingState what="the request’s details" />
+              <LoadingState what="the request’s details" variant="form" />
             ) : (
               <div className="mt-4 space-y-4 text-stone-700">
                 <p role="alert">{draft && 'error' in draft ? draft.error : 'The request could not be loaded.'}</p>

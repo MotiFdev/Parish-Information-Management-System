@@ -96,7 +96,7 @@ export default function ParishionersPage() {
         {!ready ? (
           <div className={cardClass}>
             {state === 'loading' ? (
-              <LoadingState what="the directory" />
+              <LoadingState what="the directory" variant="table" />
             ) : (
               <ErrorState what="the directory" help="If it keeps happening, tell the system administrator." onRetry={reload} />
             )}

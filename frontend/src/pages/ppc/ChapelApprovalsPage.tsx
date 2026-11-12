@@ -233,7 +233,7 @@ export default function ChapelApprovalsPage() {
         </div>
       ) : !reviews.data ? (
         <div className={`${cardClass} mt-4`}>
-          <LoadingState what="chapels and officers" />
+          <LoadingState what="chapels and officers" variant="table" />
         </div>
       ) : total === 0 ? (
         <div className={`${cardClass} mt-4 px-5 py-12 text-center`}>

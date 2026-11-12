@@ -287,7 +287,7 @@ export default function ChapelsPage() {
       <section aria-label={view === 'chapels' ? 'Chapel directory' : 'Chapel officers'} className={`${cardClass} mt-2`}>
         {!ready ? (
           directory.state === 'loading' ? (
-            <LoadingState what={view === 'chapels' ? 'the chapel directory' : 'chapel officers'} />
+            <LoadingState what={view === 'chapels' ? 'the chapel directory' : 'chapel officers'} variant="table" />
           ) : (
             <ErrorState
               what={view === 'chapels' ? 'the chapel directory' : 'chapel officers'}

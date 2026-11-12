@@ -151,7 +151,7 @@ export default function DocumentsPage() {
           <section aria-label="Files" className="mt-3 rounded-2xl border border-stone-200 bg-white">
             {!ready ? (
               state === 'loading' ? (
-                <LoadingState what="documents" />
+                <LoadingState what="documents" variant="table" />
               ) : (
                 <ErrorState what="documents" help="If it keeps happening, tell the system administrator." onRetry={reload} />
               )
